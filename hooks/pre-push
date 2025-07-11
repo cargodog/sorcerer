@@ -1,0 +1,43 @@
+#!/bin/bash
+set -e
+
+echo "Running pre-push checks..."
+
+# Check cargo availability
+command -v cargo &> /dev/null || { echo "Error: cargo not found"; exit 1; }
+
+# Run tests
+echo "Running tests..."
+cargo test || { echo "Error: Tests failed"; exit 1; }
+
+# Security audit if available
+if command -v cargo-audit &> /dev/null; then
+    echo "Running security audit..."
+    cargo audit || { echo "Error: Security vulnerabilities found"; exit 1; }
+fi
+
+# Build release to ensure it compiles
+echo "Testing release build..."
+cargo build --release || { echo "Error: Release build failed"; exit 1; }
+
+# Get changed files
+base_ref=$(git rev-parse --verify origin/master 2>/dev/null || echo "HEAD~1")
+changed_files=$(git diff --name-only "$base_ref"..HEAD 2>/dev/null | grep "\.rs$" || true)
+
+if [ -n "$changed_files" ]; then
+    echo "Checking for potential issues in changed files..."
+    
+    # Warn about unsafe code
+    for file in $changed_files; do
+        [ -f "$file" ] && git show HEAD:"$file" 2>/dev/null | grep -q "unsafe" && \
+            echo "Warning: Unsafe code in $file"
+    done
+    
+    # Warn about TODOs
+    for file in $changed_files; do
+        [ -f "$file" ] && git show HEAD:"$file" 2>/dev/null | grep -qE "TODO|FIXME" && \
+            echo "Warning: TODO/FIXME in $file"
+    done
+fi
+
+echo "Pre-push checks passed!"
