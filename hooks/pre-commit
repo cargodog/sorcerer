@@ -1,0 +1,59 @@
+#!/bin/bash
+set -e
+
+echo "Running pre-commit checks..."
+
+# Check cargo availability
+command -v cargo &> /dev/null || { echo "Error: cargo not found"; exit 1; }
+
+# Get staged Rust files
+rust_files=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.rs$' || true)
+[ -z "$rust_files" ] && { echo "No Rust files to check"; exit 0; }
+
+# Format check
+echo "Checking formatting..."
+cargo fmt --check || { 
+    cargo fmt
+    echo "Code formatted. Please stage changes and commit again."
+    exit 1
+}
+
+# Lint check
+echo "Running clippy..."
+cargo clippy --all-targets --all-features -- -D warnings || {
+    echo "Clippy found issues. Please fix before committing."
+    exit 1
+}
+
+# Build check
+echo "Building project..."
+cargo build || {
+    echo "Build failed. Please fix before committing."
+    exit 1
+}
+
+# Basic security checks
+echo "Checking for potential issues..."
+for file in $rust_files; do
+    [ -f "$file" ] || continue
+    
+    # Check for hardcoded secrets
+    if grep -qE "(password|secret|key|token).*=.*['\"][^'\"]{8,}['\"]" "$file"; then
+        echo "Warning: Potential hardcoded secret in $file"
+        grep -nE "(password|secret|key|token).*=.*['\"][^'\"]{8,}['\"]" "$file" | head -3
+        read -p "Continue anyway? (y/N) " -n 1 -r < /dev/tty
+        echo
+        [[ ! $REPLY =~ ^[Yy]$ ]] && exit 1
+    fi
+    
+    # Check for debug prints (exclude tests)
+    if [[ ! "$file" =~ tests/ ]] && grep -qE "(println!|dbg!|eprintln!)" "$file"; then
+        echo "Warning: Debug prints in $file"
+        grep -nE "(println!|dbg!|eprintln!)" "$file" | head -3
+        read -p "Continue anyway? (y/N) " -n 1 -r < /dev/tty
+        echo
+        [[ ! $REPLY =~ ^[Yy]$ ]] && exit 1
+    fi
+done
+
+echo "Pre-commit checks passed!"

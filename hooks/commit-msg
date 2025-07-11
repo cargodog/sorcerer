@@ -1,0 +1,45 @@
+#!/bin/bash
+set -e
+
+commit_msg_file="$1"
+commit_msg=$(grep -v "^#" "$commit_msg_file" | sed '/^$/d' | sed '/^# -\+\s*>8\s*-\+/,$d')
+
+echo "Validating commit message..."
+
+# Check if empty
+[ -z "$(echo "$commit_msg" | tr -d '[:space:]')" ] && { echo "Error: Empty commit message"; exit 1; }
+
+first_line=$(echo "$commit_msg" | head -n1)
+
+# Length checks
+len=${#first_line}
+[ $len -lt 10 ] && { echo "Error: Message too short (min 10 chars)"; exit 1; }
+[ $len -gt 72 ] && { echo "Error: First line too long (max 72 chars)"; exit 1; }
+
+# Allow merge commits
+[[ "$first_line" =~ ^Merge ]] && { echo "Merge commit accepted"; exit 0; }
+
+# Require conventional commit format
+if [[ ! "$first_line" =~ ^(feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert)(\(.+\))?: ]]; then
+    cat << EOF
+Error: Use conventional commit format: <type>(<scope>): <description>
+
+Types: feat, fix, docs, style, refactor, test, chore, perf, ci, build, revert
+
+Examples:
+  feat(auth): add user login
+  fix: resolve timeout error
+  docs: update readme
+
+Your message: '$first_line'
+EOF
+    exit 1
+fi
+
+# Check for WIP-like patterns
+if echo "$commit_msg" | grep -qiE "\b(wip|fixup|squash|todo|hack|temp)\b"; then
+    echo "Error: Commit contains prohibited words (wip, fixup, squash, todo, hack, temp)"
+    exit 1
+fi
+
+echo "Commit message valid!"
