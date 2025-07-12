@@ -134,25 +134,7 @@ async fn main() -> Result<()> {
                             if !history.is_empty() {
                                 println!("Recent Chat History:");
                                 for line in history {
-                                    let mut lines_iter = line.lines();
-                                    if let Some(first_line) = lines_iter.next() {
-                                        println!("  {first_line}");
-                                        // For multi-line messages, indent subsequent lines to align with the message content
-                                        for subsequent_line in lines_iter {
-                                            // Find the position after the speaker name (e.g., "Sorcerer: " or "AppName: ")
-                                            let indent_size =
-                                                if let Some(colon_pos) = first_line.find(": ") {
-                                                    colon_pos + 2 + 2 // colon + space + initial 2-space indent
-                                                } else {
-                                                    2 // fallback to basic indent
-                                                };
-                                            println!(
-                                                "{}{}",
-                                                " ".repeat(indent_size),
-                                                subsequent_line
-                                            );
-                                        }
-                                    }
+                                    print_wrapped_chat_line(&line);
                                 }
                             }
                         }
@@ -180,10 +162,10 @@ async fn main() -> Result<()> {
                     if lines.is_none() && history.len() > 20 {
                         show_history_with_pager(&history)?;
                     } else {
-                        // Show history directly
+                        // Show history directly with proper formatting
                         println!();
                         for line in &history {
-                            println!("{line}");
+                            print_wrapped_chat_line(line);
                         }
                         if history.len() >= history_lines && lines.is_none() {
                             println!("\n(Showing last {history_lines} lines)");
@@ -199,6 +181,137 @@ async fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+fn get_terminal_width() -> usize {
+    if let Some(size) = termsize::get() {
+        size.cols as usize
+    } else {
+        80 // fallback to 80 columns
+    }
+}
+
+fn wrap_text(text: &str, width: usize, subsequent_indent: usize) -> Vec<String> {
+    let mut lines = Vec::new();
+    let words: Vec<&str> = text.split_whitespace().collect();
+
+    if words.is_empty() {
+        return lines;
+    }
+
+    let mut current_line = String::new();
+    let mut first_line = true;
+
+    for word in words {
+        let space_needed = if current_line.is_empty() { 0 } else { 1 };
+        let indent = if first_line { 0 } else { subsequent_indent };
+
+        if current_line.len() + space_needed + word.len() + indent > width
+            && !current_line.is_empty()
+        {
+            // Line would be too long, start a new line
+            lines.push(current_line);
+            current_line = String::new();
+            first_line = false;
+        }
+
+        if !current_line.is_empty() {
+            current_line.push(' ');
+        }
+
+        current_line.push_str(word);
+    }
+
+    if !current_line.is_empty() {
+        lines.push(current_line);
+    }
+
+    lines
+}
+
+fn print_wrapped_chat_line(line: &str) {
+    let terminal_width = get_terminal_width();
+    let base_indent = 2; // Initial 2-space indent
+
+    // Split on existing line breaks first
+    for line_part in line.lines() {
+        if let Some(colon_pos) = line_part.find(": ") {
+            // This is a speaker line (e.g., "Sorcerer: message" or "AppName: message")
+            let speaker_prefix = &line_part[..colon_pos + 2]; // Include ": "
+            let message_content = &line_part[colon_pos + 2..];
+
+            let speaker_with_indent = format!("{}{}", " ".repeat(base_indent), speaker_prefix);
+            let content_indent = speaker_with_indent.len();
+
+            // Wrap the message content
+            if message_content.is_empty() {
+                println!("{speaker_with_indent}");
+            } else {
+                let available_width = terminal_width.saturating_sub(base_indent);
+                let wrapped_lines = wrap_text(message_content, available_width, content_indent);
+
+                for (i, wrapped_line) in wrapped_lines.iter().enumerate() {
+                    if i == 0 {
+                        println!("{speaker_with_indent}{wrapped_line}");
+                    } else {
+                        println!("{}{wrapped_line}", " ".repeat(content_indent));
+                    }
+                }
+            }
+        } else {
+            // No speaker prefix, just indent and wrap
+            let available_width = terminal_width.saturating_sub(base_indent);
+            let wrapped_lines = wrap_text(line_part, available_width, base_indent);
+
+            for wrapped_line in wrapped_lines {
+                println!("{}{wrapped_line}", " ".repeat(base_indent));
+            }
+        }
+    }
+}
+
+fn format_chat_line_for_pager(line: &str) -> Vec<String> {
+    let mut result = Vec::new();
+    let terminal_width = get_terminal_width();
+    let base_indent = 2; // Initial 2-space indent
+
+    // Split on existing line breaks first
+    for line_part in line.lines() {
+        if let Some(colon_pos) = line_part.find(": ") {
+            // This is a speaker line (e.g., "Sorcerer: message" or "AppName: message")
+            let speaker_prefix = &line_part[..colon_pos + 2]; // Include ": "
+            let message_content = &line_part[colon_pos + 2..];
+
+            let speaker_with_indent = format!("{}{}", " ".repeat(base_indent), speaker_prefix);
+            let content_indent = speaker_with_indent.len();
+
+            // Wrap the message content
+            if message_content.is_empty() {
+                result.push(speaker_with_indent);
+            } else {
+                let available_width = terminal_width.saturating_sub(base_indent);
+                let wrapped_lines = wrap_text(message_content, available_width, content_indent);
+
+                for (i, wrapped_line) in wrapped_lines.iter().enumerate() {
+                    if i == 0 {
+                        result.push(format!("{speaker_with_indent}{wrapped_line}"));
+                    } else {
+                        result.push(format!("{}{wrapped_line}", " ".repeat(content_indent)));
+                    }
+                }
+            }
+        } else {
+            // No speaker prefix, just indent and wrap
+            let available_width = terminal_width.saturating_sub(base_indent);
+            let wrapped_lines = wrap_text(line_part, available_width, base_indent);
+
+            for wrapped_line in wrapped_lines {
+                result.push(format!("{}{wrapped_line}", " ".repeat(base_indent)));
+            }
+        }
+    }
+
+    result
 }
 
 fn show_history_with_pager(history: &[String]) -> Result<()> {
@@ -225,7 +338,11 @@ fn show_history_with_pager(history: &[String]) -> Result<()> {
             if let Some(stdin) = child.stdin.take() {
                 let mut writer = io::BufWriter::new(stdin);
                 for line in history {
-                    writeln!(writer, "{line}")?;
+                    // Format each line properly before sending to pager
+                    let formatted_lines = format_chat_line_for_pager(line);
+                    for formatted_line in formatted_lines {
+                        writeln!(writer, "{formatted_line}")?;
+                    }
                 }
                 drop(writer); // Close stdin
             }
@@ -235,7 +352,7 @@ fn show_history_with_pager(history: &[String]) -> Result<()> {
             // Fall back to plain output if pager fails
             println!();
             for line in history {
-                println!("{line}");
+                print_wrapped_chat_line(line);
             }
         }
     }
