@@ -1,4 +1,4 @@
-# 🧙‍♂️ Sorcerer - Master of Apprentices
+# 🧙‍♂️ Sorcerer - M The Magical AI Orchestrator
 
 > *"The old sorcerer himself was not present to watch over his apprentice..."*
 
