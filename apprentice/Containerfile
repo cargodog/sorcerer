@@ -22,14 +22,16 @@ RUN mkdir -p src apprentice/src && \
     echo "fn main() {}" > apprentice/src/main.rs
 
 # Build dependencies
-RUN cargo build --release -p apprentice && \
-    rm -rf src apprentice/src
+RUN cargo build --release -p apprentice
+
+# Remove the dummy source and the dummy binary to force rebuild
+RUN rm -rf src apprentice/src target/release/apprentice
 
 # Copy actual source code
 COPY apprentice/src /app/apprentice/src
 
-# Build the apprentice
-RUN cargo build --release -p apprentice
+# Build the apprentice with the real source code
+RUN touch apprentice/src/main.rs && cargo build --release -p apprentice
 
 # Runtime stage
 FROM debian:bookworm-slim
