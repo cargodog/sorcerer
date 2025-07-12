@@ -43,7 +43,8 @@ fn test_help_command() {
         .stdout(predicate::str::contains("tell"))
         .stdout(predicate::str::contains("scry"))
         .stdout(predicate::str::contains("banish"))
-        .stdout(predicate::str::contains("grimoire"));
+        .stdout(predicate::str::contains("grimoire"))
+        .stdout(predicate::str::contains("history"));
 }
 
 #[test]
@@ -279,4 +280,55 @@ fn test_output_consistency() {
 
     // Should have same number of lines (assuming no apprentices are added/removed)
     assert_eq!(lines1.len(), lines2.len());
+}
+
+#[test]
+fn test_history_command_help() {
+    let mut cmd = Command::cargo_bin("srcrr").unwrap();
+    cmd.args(["history", "--help"]);
+
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains(
+            "View and scroll through chat history with an apprentice",
+        ))
+        .stdout(predicate::str::contains("NAME"))
+        .stdout(predicate::str::contains("--lines"));
+}
+
+#[test]
+fn test_history_nonexistent_apprentice() {
+    let mut cmd = Command::cargo_bin("srcrr").unwrap();
+    cmd.args(["history", "nonexistent-apprentice"]);
+
+    cmd.assert()
+        .success() // Command itself succeeds, but shows error message
+        .stdout(predicate::str::contains(
+            "📜 Viewing chat history for apprentice nonexistent-apprentice",
+        ))
+        .stdout(predicate::str::contains(
+            "💥 Failed to retrieve chat history",
+        ));
+}
+
+#[test]
+fn test_history_with_lines_option() {
+    let mut cmd = Command::cargo_bin("srcrr").unwrap();
+    cmd.args(["history", "test-apprentice", "--lines", "5"]);
+
+    // Should fail gracefully for non-existent apprentice
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains("📜 Viewing chat history"));
+}
+
+#[test]
+fn test_history_command_validation() {
+    // Test without apprentice name - should fail
+    let mut cmd = Command::cargo_bin("srcrr").unwrap();
+    cmd.arg("history");
+
+    cmd.assert()
+        .failure()
+        .stderr(predicate::str::contains("required"));
 }
