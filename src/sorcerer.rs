@@ -322,7 +322,7 @@ impl Sorcerer {
             .collect())
     }
 
-    pub async fn banish_apprentice(&mut self, name: &str) -> Result<()> {
+    pub async fn kill_apprentice(&mut self, name: &str) -> Result<()> {
         let mut apprentices = self.apprentices.lock().await;
         let apprentice = apprentices
             .remove(name)
@@ -331,7 +331,7 @@ impl Sorcerer {
         // Try to gracefully shut down via gRPC first
         if let Some(mut client) = apprentice.client {
             let _ = client
-                .banish(tonic::Request::new(spells::BanishRequest {
+                .kill(tonic::Request::new(spells::KillRequest {
                     reason: "Sorcerer's command".to_string(),
                 }))
                 .await;
@@ -356,7 +356,7 @@ impl Sorcerer {
             )
             .await?;
 
-        info!("Apprentice {} has been banished", name);
+        info!("Apprentice {} has been killed", name);
         Ok(())
     }
 

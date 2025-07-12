@@ -6,7 +6,7 @@ service Apprentice {
   rpc CastSpell(SpellRequest) returns (SpellResponse);
   rpc GetStatus(StatusRequest) returns (StatusResponse);
   rpc GetChatHistory(ChatHistoryRequest) returns (ChatHistoryResponse);
-  rpc Banish(BanishRequest) returns (BanishResponse);
+  rpc Kill(KillRequest) returns (KillResponse);
 }
 
 message SpellRequest {
@@ -37,11 +37,11 @@ message ChatHistoryResponse {
   repeated string history = 1;  // Chat history lines
 }
 
-message BanishRequest {
+message KillRequest {
   string reason = 1;
 }
 
-message BanishResponse {
+message KillResponse {
   bool success = 1;
   string message = 2;
 }

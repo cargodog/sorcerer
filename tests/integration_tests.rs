@@ -11,7 +11,7 @@ impl ApprenticeGuard {
     fn new(name: &str) -> Self {
         // Clean up any existing apprentice with this name first
         let _ = StdCommand::new("./target/release/srcrr")
-            .args(["banish", name])
+            .args(["kill", name])
             .output();
 
         Self {
@@ -24,7 +24,7 @@ impl Drop for ApprenticeGuard {
     fn drop(&mut self) {
         // Ensure cleanup happens even if test panics
         let _ = StdCommand::new("./target/release/srcrr")
-            .args(["banish", &self.name])
+            .args(["kill", &self.name])
             .output();
     }
 }
@@ -41,9 +41,9 @@ fn test_help_command() {
         ))
         .stdout(predicate::str::contains("summon"))
         .stdout(predicate::str::contains("tell"))
-        .stdout(predicate::str::contains("scry"))
-        .stdout(predicate::str::contains("banish"))
-        .stdout(predicate::str::contains("grimoire"))
+        .stdout(predicate::str::contains("list"))
+        .stdout(predicate::str::contains("kill"))
+        .stdout(predicate::str::contains("overview"))
         .stdout(predicate::str::contains("history"));
 }
 
@@ -79,46 +79,46 @@ fn test_invalid_command() {
 
 #[test]
 #[serial]
-fn test_scry_command() {
+fn test_list_command() {
     let mut cmd = Command::cargo_bin("srcrr").unwrap();
-    cmd.arg("scry");
+    cmd.arg("list");
 
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains("👁️  Scrying for apprentices..."));
+        .stdout(predicate::str::contains("📋 Listing apprentices..."));
 }
 
 #[test]
 #[serial]
-fn test_grimoire_command() {
+fn test_overview_command() {
     let mut cmd = Command::cargo_bin("srcrr").unwrap();
-    cmd.arg("grimoire");
+    cmd.arg("overview");
 
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains("📖 Consulting the grimoire..."));
+        .stdout(predicate::str::contains("📊 Overview of apprentices..."));
 }
 
 #[test]
 #[serial]
-fn test_grimoire_with_lines_option() {
+fn test_overview_with_lines_option() {
     let mut cmd = Command::cargo_bin("srcrr").unwrap();
-    cmd.args(["grimoire", "--lines", "10"]);
+    cmd.args(["overview", "--lines", "10"]);
 
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains("📖 Consulting the grimoire..."));
+        .stdout(predicate::str::contains("📊 Overview of apprentices..."));
 }
 
 #[test]
 #[serial]
-fn test_grimoire_with_lines_short_option() {
+fn test_overview_with_lines_short_option() {
     let mut cmd = Command::cargo_bin("srcrr").unwrap();
-    cmd.args(["grimoire", "-l", "5"]);
+    cmd.args(["overview", "-l", "5"]);
 
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains("📖 Consulting the grimoire..."));
+        .stdout(predicate::str::contains("📊 Overview of apprentices..."));
 }
 
 #[test]
@@ -152,9 +152,9 @@ fn test_tell_with_only_name() {
 }
 
 #[test]
-fn test_banish_without_name() {
+fn test_kill_without_name() {
     let mut cmd = Command::cargo_bin("srcrr").unwrap();
-    cmd.arg("banish");
+    cmd.arg("kill");
 
     cmd.assert()
         .failure()
@@ -178,22 +178,22 @@ fn test_tell_nonexistent_apprentice() {
 
 #[test]
 #[serial]
-fn test_banish_nonexistent_apprentice() {
+fn test_kill_nonexistent_apprentice() {
     let mut cmd = Command::cargo_bin("srcrr").unwrap();
-    cmd.args(["banish", "nonexistent_apprentice"]);
+    cmd.args(["kill", "nonexistent_apprentice"]);
 
     cmd.assert()
         .success()
         .stdout(predicate::str::contains(
-            "🌪️  Banishing apprentice nonexistent_apprentice...",
+            "💀 Killing apprentice nonexistent_apprentice...",
         ))
-        .stdout(predicate::str::contains("⚠️  Banishment failed"));
+        .stdout(predicate::str::contains("⚠️  Kill failed"));
 }
 
 #[test]
-fn test_grimoire_invalid_lines_option() {
+fn test_overview_invalid_lines_option() {
     let mut cmd = Command::cargo_bin("srcrr").unwrap();
-    cmd.args(["grimoire", "--lines", "invalid"]);
+    cmd.args(["overview", "--lines", "invalid"]);
 
     cmd.assert()
         .failure()
@@ -202,30 +202,30 @@ fn test_grimoire_invalid_lines_option() {
 
 #[test]
 #[serial]
-fn test_scry_empty_output_format() {
+fn test_list_empty_output_format() {
     let mut cmd = Command::cargo_bin("srcrr").unwrap();
-    cmd.arg("scry");
+    cmd.arg("list");
 
     let output = cmd.output().unwrap();
     let stdout = String::from_utf8(output.stdout).unwrap();
 
     // Should contain either apprentice names or empty message
-    assert!(stdout.contains("👁️  Scrying for apprentices..."));
+    assert!(stdout.contains("📋 Listing apprentices..."));
     assert!(stdout.contains("🧙") || stdout.contains("The realm is empty"));
 }
 
 #[test]
 #[serial]
-fn test_grimoire_empty_output_format() {
+fn test_overview_empty_output_format() {
     let mut cmd = Command::cargo_bin("srcrr").unwrap();
-    cmd.arg("grimoire");
+    cmd.arg("overview");
 
     let output = cmd.output().unwrap();
     let stdout = String::from_utf8(output.stdout).unwrap();
 
     // Should contain either apprentice info or empty message
-    assert!(stdout.contains("📖 Consulting the grimoire..."));
-    assert!(stdout.contains(" Apprentice: ") || stdout.contains("The grimoire is empty"));
+    assert!(stdout.contains("📊 Overview of apprentices..."));
+    assert!(stdout.contains(" Apprentice: ") || stdout.contains("No apprentices found"));
 }
 
 // Test that command outputs contain expected emojis and messaging
@@ -255,21 +255,21 @@ fn test_command_output_formatting() {
 #[test]
 #[serial]
 fn test_output_consistency() {
-    // Test that repeated calls to scry produce consistent output structure
+    // Test that repeated calls to list produce consistent output structure
     let mut cmd1 = Command::cargo_bin("srcrr").unwrap();
-    cmd1.arg("scry");
+    cmd1.arg("list");
     let output1 = cmd1.output().unwrap();
 
     let mut cmd2 = Command::cargo_bin("srcrr").unwrap();
-    cmd2.arg("scry");
+    cmd2.arg("list");
     let output2 = cmd2.output().unwrap();
 
     let stdout1 = String::from_utf8(output1.stdout).unwrap();
     let stdout2 = String::from_utf8(output2.stdout).unwrap();
 
     // Both should have the same header
-    assert!(stdout1.contains("👁️  Scrying for apprentices..."));
-    assert!(stdout2.contains("👁️  Scrying for apprentices..."));
+    assert!(stdout1.contains("📋 Listing apprentices..."));
+    assert!(stdout2.contains("📋 Listing apprentices..."));
 
     // Content should be consistent (same apprentices should appear)
     let lines1: Vec<&str> = stdout1.lines().collect();

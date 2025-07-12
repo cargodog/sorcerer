@@ -11,7 +11,7 @@ pub mod spells {
 
 use spells::apprentice_server::Apprentice;
 use spells::{
-    BanishRequest, BanishResponse, ChatHistoryRequest, ChatHistoryResponse, SpellRequest,
+    ChatHistoryRequest, ChatHistoryResponse, KillRequest, KillResponse, SpellRequest,
     SpellResponse, StatusRequest, StatusResponse,
 };
 
@@ -143,19 +143,16 @@ impl Apprentice for ApprenticeServer {
         Ok(Response::new(ChatHistoryResponse { history }))
     }
 
-    async fn banish(
-        &self,
-        request: Request<BanishRequest>,
-    ) -> Result<Response<BanishResponse>, Status> {
+    async fn kill(&self, request: Request<KillRequest>) -> Result<Response<KillResponse>, Status> {
         let reason = request.into_inner().reason;
-        info!("Apprentice being banished: {}", reason);
+        info!("Apprentice being killed: {}", reason);
 
         tokio::spawn(async {
             tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
             std::process::exit(0);
         });
 
-        Ok(Response::new(BanishResponse {
+        Ok(Response::new(KillResponse {
             success: true,
             message: format!("Fading away into the ether... ({})", reason),
         }))

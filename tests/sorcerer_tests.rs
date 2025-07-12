@@ -186,7 +186,7 @@ mod sorcerer_tests {
 
     #[test]
     fn test_apprentice_removal_logic() {
-        // Test the apprentice removal logic used in banish_apprentice
+        // Test the apprentice removal logic used in kill_apprentice
         let mut apprentices = HashMap::new();
         let apprentice_name = "test_apprentice";
 
@@ -252,8 +252,8 @@ mod sorcerer_tests {
     }
 
     #[test]
-    fn test_banish_reason_formats() {
-        // Test different banish reason formats
+    fn test_kill_reason_formats() {
+        // Test different kill reason formats
         let reasons = vec![
             "Sorcerer's command",
             "Apprentice requested shutdown",
@@ -267,8 +267,8 @@ mod sorcerer_tests {
             // Verify it doesn't contain null bytes
             assert!(!reason.contains('\0'));
             // Verify it can be used in logging format
-            let log_msg = format!("Banishing apprentice: {reason}");
-            assert!(log_msg.starts_with("Banishing apprentice: "));
+            let log_msg = format!("Killing apprentice: {reason}");
+            assert!(log_msg.starts_with("Killing apprentice: "));
         }
     }
 

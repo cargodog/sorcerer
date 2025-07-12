@@ -10,7 +10,7 @@ impl ApprenticeGuard {
     fn new(name: &str) -> Self {
         // Clean up any existing apprentice with this name first
         let _ = Command::new("./target/release/srcrr")
-            .args(["banish", name])
+            .args(["kill", name])
             .output();
 
         // Wait for cleanup to complete
@@ -26,7 +26,7 @@ impl Drop for ApprenticeGuard {
     fn drop(&mut self) {
         // Ensure cleanup happens even if test panics
         let _ = Command::new("./target/release/srcrr")
-            .args(["banish", &self.name])
+            .args(["kill", &self.name])
             .output();
     }
 }
@@ -44,7 +44,7 @@ fn cleanup_all_test_apprentices() {
 
     for name in &test_names {
         let _ = Command::new("./target/release/srcrr")
-            .args(["banish", name])
+            .args(["kill", name])
             .output();
     }
 
@@ -104,16 +104,16 @@ fn test_summon_and_communicate() {
     );
     assert!(stdout.contains("4"), "Response should contain '4'");
 
-    // Test scry includes our apprentice
+    // Test list includes our apprentice
     let output = Command::new("./target/release/srcrr")
-        .arg("scry")
+        .arg("list")
         .output()
-        .expect("Failed to execute scry command");
+        .expect("Failed to execute list command");
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
         stdout.contains("container-test"),
-        "Scry should list our apprentice"
+        "List should show our apprentice"
     );
 
     // Cleanup handled automatically by ApprenticeGuard

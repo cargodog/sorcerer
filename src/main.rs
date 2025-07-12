@@ -30,14 +30,14 @@ enum Commands {
         message: String,
     },
     /// List all active apprentices
-    Scry,
+    List,
     /// Stop and remove an apprentice container
-    Banish {
+    Kill {
         /// Name of the apprentice to remove
         name: String,
     },
     /// Show detailed status information for all apprentices
-    Grimoire {
+    Overview {
         /// Number of recent chat history lines to show
         #[arg(short, long, default_value = "4")]
         lines: usize,
@@ -90,8 +90,8 @@ async fn main() -> Result<()> {
                 }
             }
         }
-        Commands::Scry => {
-            println!("👁️  Scrying for apprentices...");
+        Commands::List => {
+            println!("📋 Listing apprentices...");
             println!();
             let apprentices = sorcerer.list_apprentices().await?;
             if apprentices.is_empty() {
@@ -102,23 +102,23 @@ async fn main() -> Result<()> {
                 }
             }
         }
-        Commands::Banish { name } => {
-            println!("🌪️  Banishing apprentice {name}...");
-            match sorcerer.banish_apprentice(&name).await {
+        Commands::Kill { name } => {
+            println!("💀 Killing apprentice {name}...");
+            match sorcerer.kill_apprentice(&name).await {
                 Ok(_) => {
-                    println!("💨 Apprentice {name} has been banished!");
+                    println!("⚰️  Apprentice {name} has been killed!");
                 }
                 Err(e) => {
-                    error!("Failed to banish apprentice: {}", e);
-                    println!("⚠️  Banishment failed");
+                    error!("Failed to kill apprentice: {}", e);
+                    println!("⚠️  Kill failed");
                 }
             }
         }
-        Commands::Grimoire { lines } => {
-            println!("📖 Consulting the grimoire...");
+        Commands::Overview { lines } => {
+            println!("📊 Overview of apprentices...");
             let statuses = sorcerer.get_all_status().await?;
             if statuses.is_empty() {
-                println!("The grimoire is empty - no apprentices found.");
+                println!("No apprentices found.");
             } else {
                 let mut first = true;
                 for (name, status) in statuses {
