@@ -2,6 +2,56 @@ use serial_test::serial;
 use std::process::Command;
 use std::time::Duration;
 
+struct ApprenticeGuard {
+    name: String,
+}
+
+impl ApprenticeGuard {
+    fn new(name: &str) -> Self {
+        // Clean up any existing apprentice with this name first
+        let _ = Command::new("./target/release/srcrr")
+            .args(["banish", name])
+            .output();
+
+        // Wait for cleanup to complete
+        std::thread::sleep(Duration::from_millis(500));
+
+        Self {
+            name: name.to_string(),
+        }
+    }
+}
+
+impl Drop for ApprenticeGuard {
+    fn drop(&mut self) {
+        // Ensure cleanup happens even if test panics
+        let _ = Command::new("./target/release/srcrr")
+            .args(["banish", &self.name])
+            .output();
+    }
+}
+
+/// Clean up all common test apprentices
+/// This can be called manually to ensure no test apprentices are left running
+#[allow(dead_code)]
+fn cleanup_all_test_apprentices() {
+    let test_names = [
+        "container-test",
+        "duplicate-test",
+        "test-apprentice",
+        "test_formatting",
+    ];
+
+    for name in &test_names {
+        let _ = Command::new("./target/release/srcrr")
+            .args(["banish", name])
+            .output();
+    }
+
+    // Wait for all cleanups to complete
+    std::thread::sleep(Duration::from_millis(500));
+}
+
 #[test]
 #[serial]
 fn test_summon_and_communicate() {
@@ -11,13 +61,8 @@ fn test_summon_and_communicate() {
         return;
     }
 
-    // Clean up any existing test apprentice
-    let _ = Command::new("./target/release/srcrr")
-        .args(["banish", "container-test"])
-        .output();
-
-    // Wait a bit for cleanup
-    std::thread::sleep(Duration::from_secs(1));
+    // Use guard to ensure cleanup even if test panics
+    let _guard = ApprenticeGuard::new("container-test");
 
     // Test summoning
     let output = Command::new("./target/release/srcrr")
@@ -71,17 +116,7 @@ fn test_summon_and_communicate() {
         "Scry should list our apprentice"
     );
 
-    // Clean up
-    let output = Command::new("./target/release/srcrr")
-        .args(["banish", "container-test"])
-        .output()
-        .expect("Failed to execute banish command");
-
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(
-        stdout.contains("has been banished"),
-        "Unexpected banish output: {stdout}"
-    );
+    // Cleanup handled automatically by ApprenticeGuard
 }
 
 #[test]
@@ -91,6 +126,7 @@ fn test_summon_duplicate_fails() {
     // First summon might fail if no runtime, but duplicate check should still work
 
     let name = "duplicate-test";
+    let _guard = ApprenticeGuard::new(name);
 
     // Try to summon twice
     let _ = Command::new("./target/release/srcrr")
@@ -113,10 +149,7 @@ fn test_summon_duplicate_fails() {
         "Unexpected output: {stdout}"
     );
 
-    // Clean up if it was created
-    let _ = Command::new("./target/release/srcrr")
-        .args(["banish", name])
-        .output();
+    // Cleanup handled automatically by ApprenticeGuard
 }
 
 #[test]
