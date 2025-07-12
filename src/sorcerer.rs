@@ -199,8 +199,25 @@ impl Sorcerer {
 
         let mut apprentices = self.apprentices.lock().await;
 
-        if apprentices.contains_key(name) {
-            return Err(anyhow!("Apprentice {} already exists", name));
+        // Check if apprentice already exists and is active (has a working client)
+        if let Some(existing_apprentice) = apprentices.get(name) {
+            if existing_apprentice.client.is_some() {
+                return Err(anyhow!("Apprentice {} already exists", name));
+            } else {
+                // Remove inactive apprentice entry and any existing container to allow recreation
+                apprentices.remove(name);
+                info!("Removed inactive apprentice {} to allow recreation", name);
+
+                // Try to remove any existing container with this name
+                let container_name = format!("apprentice-{name}");
+                if let Err(e) = self.docker.remove_container(&container_name, None).await {
+                    // Log but don't fail if container doesn't exist or can't be removed
+                    info!(
+                        "Could not remove existing container {}: {}",
+                        container_name, e
+                    );
+                }
+            }
         }
 
         let port = {
