@@ -8,6 +8,12 @@ orchestrate them to collaborate on collaborative tasks. An agent may be allowed
 to take over orchestration for fully automated problem solving, but the
 sorcerer should keep an eye on his apprentice, lest he relearn old lessons.
 
+<div align="center">
+
+![Sorcerer's Apprentice](docs/assets/flamenquines-don-chalecos.gif)
+
+</div>
+
 ## 📜 The Legend
 
 Tool allows you to:
