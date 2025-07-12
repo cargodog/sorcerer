@@ -1,6 +1,33 @@
 use assert_cmd::Command;
 use predicates::prelude::*;
 use serial_test::serial;
+use std::process::Command as StdCommand;
+
+struct ApprenticeGuard {
+    name: String,
+}
+
+impl ApprenticeGuard {
+    fn new(name: &str) -> Self {
+        // Clean up any existing apprentice with this name first
+        let _ = StdCommand::new("./target/release/srcrr")
+            .args(["banish", name])
+            .output();
+
+        Self {
+            name: name.to_string(),
+        }
+    }
+}
+
+impl Drop for ApprenticeGuard {
+    fn drop(&mut self) {
+        // Ensure cleanup happens even if test panics
+        let _ = StdCommand::new("./target/release/srcrr")
+            .args(["banish", &self.name])
+            .output();
+    }
+}
 
 #[test]
 fn test_help_command() {
@@ -207,6 +234,9 @@ fn test_grimoire_empty_output_format() {
 #[test]
 #[serial]
 fn test_command_output_formatting() {
+    // Use guard to ensure cleanup even if test panics
+    let _guard = ApprenticeGuard::new("test_formatting");
+
     // Test summon command output format
     let mut cmd = Command::cargo_bin("srcrr").unwrap();
     cmd.args(["summon", "test_formatting"]);
@@ -220,6 +250,8 @@ fn test_command_output_formatting() {
         stdout.contains("✨ Apprentice test_formatting has answered your call!")
             || stdout.contains("💀 The summoning failed")
     );
+
+    // Cleanup handled automatically by ApprenticeGuard
 }
 
 #[test]
