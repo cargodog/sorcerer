@@ -4,7 +4,6 @@ use std::time::Duration;
 
 #[test]
 #[serial]
-#[ignore] // Run with --ignored flag when container runtime is available
 fn test_summon_and_communicate() {
     // Check if we have the ANTHROPIC_API_KEY set
     if std::env::var("ANTHROPIC_API_KEY").is_err() {
