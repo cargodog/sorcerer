@@ -42,6 +42,14 @@ enum Commands {
         #[arg(short, long, default_value = "4")]
         lines: usize,
     },
+    /// View and scroll through chat history with an apprentice
+    History {
+        /// Name of the apprentice to view history for
+        name: String,
+        /// Number of history lines to show (default: all)
+        #[arg(short, long)]
+        lines: Option<usize>,
+    },
 }
 
 #[tokio::main]
@@ -154,6 +162,80 @@ async fn main() -> Result<()> {
                     }
                 }
                 println!("═══════════════════════════════");
+            }
+        }
+        Commands::History { name, lines } => {
+            println!("📜 Viewing chat history for apprentice {name}...");
+
+            // Get all history or specified number of lines
+            let history_lines = lines.unwrap_or(1000); // Large default to get all history
+            match sorcerer.get_chat_history(&name, history_lines).await {
+                Ok(history) => {
+                    if history.is_empty() {
+                        println!("No chat history found for apprentice {name}.");
+                        return Ok(());
+                    }
+
+                    // If we have many lines and no specific line count was requested, use pager
+                    if lines.is_none() && history.len() > 20 {
+                        show_history_with_pager(&history)?;
+                    } else {
+                        // Show history directly
+                        println!();
+                        for line in &history {
+                            println!("{line}");
+                        }
+                        if history.len() >= history_lines && lines.is_none() {
+                            println!("\n(Showing last {history_lines} lines)");
+                        }
+                    }
+                }
+                Err(e) => {
+                    error!("Failed to get chat history: {}", e);
+                    println!("💥 Failed to retrieve chat history for {name}");
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn show_history_with_pager(history: &[String]) -> Result<()> {
+    use std::io::{self, Write};
+    use std::process::{Command, Stdio};
+
+    // Try to use 'less' first, then fall back to 'more', then plain output
+    let pager_cmd = std::env::var("PAGER").unwrap_or_else(|_| {
+        if Command::new("less").arg("--version").output().is_ok() {
+            "less".to_string()
+        } else if Command::new("more").arg("--version").output().is_ok() {
+            "more".to_string()
+        } else {
+            "cat".to_string()
+        }
+    });
+
+    match Command::new(&pager_cmd)
+        .arg("-R") // Support colors in less
+        .stdin(Stdio::piped())
+        .spawn()
+    {
+        Ok(mut child) => {
+            if let Some(stdin) = child.stdin.take() {
+                let mut writer = io::BufWriter::new(stdin);
+                for line in history {
+                    writeln!(writer, "{line}")?;
+                }
+                drop(writer); // Close stdin
+            }
+            let _ = child.wait(); // Wait for pager to finish
+        }
+        Err(_) => {
+            // Fall back to plain output if pager fails
+            println!();
+            for line in history {
+                println!("{line}");
             }
         }
     }
