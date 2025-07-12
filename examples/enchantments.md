@@ -42,12 +42,12 @@ srcrr spell Bob "Write unit tests for a shopping cart class"
 srcrr spell Carol "Create a deployment checklist for a web application"
 
 # Check their progress
-srcrr grimoire
+srcrr overview
 
 # Dismiss the council
-srcrr banish Alice
-srcrr banish Bob
-srcrr banish Carol
+srcrr kill Alice
+srcrr kill Bob
+srcrr kill Carol
 ```
 
 ## Debugging Spells

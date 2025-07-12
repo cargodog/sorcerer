@@ -19,9 +19,9 @@ sorcerer should keep an eye on his apprentice, lest he relearn old lessons.
 Tool allows you to:
 - **Summon apprentices** - spawn a new agent in its own container
 - **Command them** - send chat prompts
-- **Scry upon your domain** - list active apprentices
-- **Consult the grimoire** - check detailed status
-- **Banish them** - stop agent processes
+- **List your domain** - list active apprentices
+- **Get overview** - check detailed status
+- **Kill them** - stop agent processes
 
 Each apprentice runs in its own isolated container, communicating through gRPC.
 
@@ -83,28 +83,28 @@ export ANTHROPIC_API_KEY="your-key-here"
 ./target/release/srcrr tell Mickey "What is the meaning of life?"
 
 # Check on all your apprentices
-./target/release/srcrr scry
+./target/release/srcrr list
 
-# When done, banish Mickey back to the void
-./target/release/srcrr banish Mickey
+# When done, kill Mickey
+./target/release/srcrr kill Mickey
 ```
 
 ## 🔮 Commands of Power
 
 ### `srcrr summon <name>`
-Brings forth a new apprentice from the mystical realm. Each apprentice is bound to serve until banished.
+Brings forth a new apprentice from the mystical realm. Each apprentice is bound to serve until killed.
 
 ### `srcrr tell <name> "<message>"`
 Sends a message to an apprentice (sends a prompt to Claude). The apprentice will channel the wisdom of the ancients to fulfill your request.
 
-### `srcrr scry`
-Reveals all apprentices currently in your service. A simple divination to see who answers to your call.
+### `srcrr list`
+Reveals all apprentices currently in your service. A simple way to see who answers to your call.
 
-### `srcrr grimoire`
-Opens the book of knowledge, revealing detailed information about each apprentice's state and recent activity.
+### `srcrr overview`
+Shows detailed information about each apprentice's state and recent activity.
 
-### `srcrr banish <name>`
-Sends an apprentice back to the ethereal plane, cleaning up all traces of their existence.
+### `srcrr kill <name>`
+Stops and removes an apprentice container, cleaning up all traces of their existence.
 
 ## 🏗️ Architecture
 
@@ -130,7 +130,7 @@ Sends an apprentice back to the ethereal plane, cleaning up all traces of their 
 Be careful not to summon more helpers than you can manage. Each apprentice
 consumes resources and makes API calls to Claude.
 
-Remember to banish your apprentices when done - they won't clean up after
+Remember to kill your apprentices when done - they won't clean up after
 themselves!
 
 ## 🎭 In the Spirit of the Tale
