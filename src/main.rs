@@ -120,30 +120,54 @@ async fn main() -> Result<()> {
             if statuses.is_empty() {
                 println!("The grimoire is empty - no apprentices found.");
             } else {
+                let mut first = true;
                 for (name, status) in statuses {
-                    println!("═══════════════════════════════");
-                    println!("Apprentice: {name}");
-                    println!("State: {}", status.state);
-                    if !status.last_spell_time.is_empty() {
-                        println!("Last Message: {}", status.last_spell_time);
+                    if !first {
+                        println!(); // Add spacing between apprentices
                     }
+                    first = false;
 
-                    // Show chat history
+                    // Calculate box width based on apprentice name length
+                    let min_width = 45;
+                    let name_header = format!(" Apprentice: {name} ");
+                    let box_width = min_width.max(name_header.len() + 2);
+
+                    // Draw apprentice info box
+                    println!("┌─{}─┐", name_header.pad_to_width(box_width - 4, '─'));
+                    println!(
+                        "│ State: {:<width$} │",
+                        status.state,
+                        width = box_width - 11
+                    );
+                    if !status.last_spell_time.is_empty() {
+                        // Parse and format timestamp to be shorter
+                        let short_time = if let Ok(dt) =
+                            chrono::DateTime::parse_from_rfc3339(&status.last_spell_time)
+                        {
+                            dt.format("%Y-%m-%d %H:%M:%S").to_string()
+                        } else {
+                            status.last_spell_time.clone()
+                        };
+                        let last_msg = format!("Last Message: {short_time}");
+                        println!("│ {:<width$} │", last_msg, width = box_width - 4);
+                    }
+                    println!("└{}┘", "─".repeat(box_width - 2));
+
+                    // Show chat history without boxes
                     match sorcerer.get_chat_history(&name, lines).await {
                         Ok(history) => {
                             if !history.is_empty() {
-                                println!("Recent Chat History:");
+                                println!("\nRecent Chat History:");
                                 for line in history {
                                     print_wrapped_chat_line(&line);
                                 }
                             }
                         }
                         Err(e) => {
-                            println!("  Could not retrieve chat history: {e}");
+                            println!("\nCould not retrieve chat history: {e}");
                         }
                     }
                 }
-                println!("═══════════════════════════════");
             }
         }
         Commands::History { name, lines } => {
@@ -187,6 +211,28 @@ fn print_wrapped_chat_line(line: &str) {
     // Output raw lines without any indentation or wrapping
     for line_part in line.lines() {
         println!("{line_part}");
+    }
+}
+
+trait PadToWidth {
+    fn pad_to_width(&self, width: usize, pad_char: char) -> String;
+}
+
+impl PadToWidth for String {
+    fn pad_to_width(&self, width: usize, pad_char: char) -> String {
+        if self.len() >= width {
+            self.clone()
+        } else {
+            let padding_needed = width - self.len();
+            let left_pad = padding_needed / 2;
+            let right_pad = padding_needed - left_pad;
+            format!(
+                "{}{}{}",
+                pad_char.to_string().repeat(left_pad),
+                self,
+                pad_char.to_string().repeat(right_pad)
+            )
+        }
     }
 }
 

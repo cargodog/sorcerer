@@ -225,10 +225,7 @@ fn test_grimoire_empty_output_format() {
 
     // Should contain either apprentice info or empty message
     assert!(stdout.contains("📖 Consulting the grimoire..."));
-    assert!(
-        stdout.contains("═══════════════════════════════")
-            || stdout.contains("The grimoire is empty")
-    );
+    assert!(stdout.contains(" Apprentice: ") || stdout.contains("The grimoire is empty"));
 }
 
 // Test that command outputs contain expected emojis and messaging
