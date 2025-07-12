@@ -208,9 +208,31 @@ async fn main() -> Result<()> {
 }
 
 fn print_wrapped_chat_line(line: &str) {
-    // Output raw lines without any indentation or wrapping
+    // Apply formatting to chat lines with bold usernames and mild colors
     for line_part in line.lines() {
-        println!("{line_part}");
+        if let Some(colon_pos) = line_part.find(':') {
+            let username = &line_part[..colon_pos];
+            let message = &line_part[colon_pos..];
+
+            // Apply different colors based on the username
+            match username {
+                "Sorcerer" => {
+                    // Mild blue for Sorcerer
+                    println!("\x1b[1;34m{username}\x1b[0m{message}");
+                }
+                username if username.contains("apprentice-") => {
+                    // Mild green for apprentices
+                    println!("\x1b[1;32m{username}\x1b[0m{message}");
+                }
+                _ => {
+                    // Default: just bold the username
+                    println!("\x1b[1m{username}\x1b[0m{message}");
+                }
+            }
+        } else {
+            // No username detected, print as-is
+            println!("{line_part}");
+        }
     }
 }
 
@@ -237,9 +259,33 @@ impl PadToWidth for String {
 }
 
 fn format_chat_line_for_pager(line: &str) -> Vec<String> {
-    // Return raw lines without any indentation or wrapping
+    // Apply formatting to chat lines with bold usernames and mild colors
     line.lines()
-        .map(|line_part| line_part.to_string())
+        .map(|line_part| {
+            if let Some(colon_pos) = line_part.find(':') {
+                let username = &line_part[..colon_pos];
+                let message = &line_part[colon_pos..];
+
+                // Apply different colors based on the username
+                match username {
+                    "Sorcerer" => {
+                        // Mild blue for Sorcerer
+                        format!("\x1b[1;34m{username}\x1b[0m{message}")
+                    }
+                    username if username.contains("apprentice-") => {
+                        // Mild green for apprentices
+                        format!("\x1b[1;32m{username}\x1b[0m{message}")
+                    }
+                    _ => {
+                        // Default: just bold the username
+                        format!("\x1b[1m{username}\x1b[0m{message}")
+                    }
+                }
+            } else {
+                // No username detected, return as-is
+                line_part.to_string()
+            }
+        })
         .collect()
 }
 
