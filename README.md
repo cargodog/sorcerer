@@ -106,7 +106,7 @@ Opens the book of knowledge, revealing detailed information about each apprentic
 ### `srcrr banish <name>`
 Sends an apprentice back to the ethereal plane, cleaning up all traces of their existence.
 
-## 🏗️ Architecture of the Arcane
+## 🏗️ Architecture
 
 ```
 ┌─────────────┐         gRPC           ┌────────────────┐
