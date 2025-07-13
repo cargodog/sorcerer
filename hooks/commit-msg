@@ -14,7 +14,17 @@ first_line=$(echo "$commit_msg" | head -n1)
 # Length checks
 len=${#first_line}
 [ $len -lt 10 ] && { echo "Error: Message too short (min 10 chars)"; exit 1; }
-[ $len -gt 72 ] && { echo "Error: First line too long (max 72 chars)"; exit 1; }
+[ $len -gt 50 ] && { echo "Error: Subject line too long (max 50 chars)"; exit 1; }
+
+# Check body lines for maximum length (80 chars), skip first line
+line_num=1
+while IFS= read -r line; do
+    if [ $line_num -gt 1 ] && [ ${#line} -gt 80 ]; then
+        echo "Error: Body line too long (max 80 chars): '$line'"
+        exit 1
+    fi
+    line_num=$((line_num + 1))
+done <<< "$commit_msg"
 
 # Allow merge commits
 [[ "$first_line" =~ ^Merge ]] && { echo "Merge commit accepted"; exit 0; }
