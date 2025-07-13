@@ -31,10 +31,8 @@ srcrr spell Dumbledore "Create a lesson plan for teaching recursion to beginners
 ## Multiple Apprentices
 
 ```bash
-# Summon a council of apprentices
-srcrr summon Alice
-srcrr summon Bob
-srcrr summon Carol
+# Summon a council of apprentices with one command
+srcrr summon Alice Bob Carol
 
 # Have them work on different tasks
 srcrr spell Alice "Design a REST API for a todo application"
@@ -42,12 +40,13 @@ srcrr spell Bob "Write unit tests for a shopping cart class"
 srcrr spell Carol "Create a deployment checklist for a web application"
 
 # Check their progress
-srcrr overview
+srcrr ps
 
-# Dismiss the council
-srcrr kill Alice
-srcrr kill Bob
-srcrr kill Carol
+# Dismiss the council with one command
+srcrr rm Alice Bob Carol
+
+# Or dismiss all apprentices at once
+# srcrr rm -a
 ```
 
 ## Debugging Spells

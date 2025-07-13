@@ -79,32 +79,41 @@ export ANTHROPIC_API_KEY="your-key-here"
 # Summon an apprentice named "Mickey"
 ./target/release/srcrr summon Mickey
 
+# Summon multiple apprentices at once
+./target/release/srcrr summon Alice Bob Carol
+
 # Send a message to Mickey
 ./target/release/srcrr tell Mickey "What is the meaning of life?"
 
 # Check on all your apprentices
-./target/release/srcrr list
+./target/release/srcrr ls
 
-# When done, kill Mickey
-./target/release/srcrr kill Mickey
+# When done, remove Mickey
+./target/release/srcrr rm Mickey
+
+# Remove multiple apprentices at once
+./target/release/srcrr rm Alice Bob
+
+# Remove all apprentices
+./target/release/srcrr rm -a
 ```
 
 ## 🔮 Commands of Power
 
-### `srcrr summon <name>`
-Brings forth a new apprentice from the mystical realm. Each apprentice is bound to serve until killed.
+### `srcrr summon <name>...`
+Brings forth one or more apprentices from the mystical realm. Each apprentice is bound to serve until removed. You can summon multiple apprentices by providing multiple names.
 
 ### `srcrr tell <name> "<message>"`
 Sends a message to an apprentice (sends a prompt to Claude). The apprentice will channel the wisdom of the ancients to fulfill your request.
 
-### `srcrr list`
+### `srcrr ls`
 Reveals all apprentices currently in your service. A simple way to see who answers to your call.
 
-### `srcrr overview`
+### `srcrr ps`
 Shows detailed information about each apprentice's state and recent activity.
 
-### `srcrr kill <name>`
-Stops and removes an apprentice container, cleaning up all traces of their existence.
+### `srcrr rm <name>... | -a`
+Stops and removes one or more apprentice containers, cleaning up all traces of their existence. You can remove multiple apprentices by providing multiple names, or use `-a`/`--all` to remove all apprentices at once.
 
 ## 🏗️ Architecture
 
