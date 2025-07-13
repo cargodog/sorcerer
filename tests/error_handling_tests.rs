@@ -32,7 +32,7 @@ mod error_handling_tests {
 
     #[test]
     fn test_status_error_states() {
-        // Test various error states that apprentices might report
+        // Test various error states that agents might report
         let error_states = vec![
             ("error", "Connection lost"),
             ("error", "API key invalid"),

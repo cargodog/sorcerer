@@ -1,4 +1,3 @@
-mod claude;
 mod server;
 
 use anyhow::Result;
@@ -11,27 +10,26 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 async fn main() -> Result<()> {
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new(
-            std::env::var("RUST_LOG").unwrap_or_else(|_| "apprentice=info".into()),
+            std::env::var("RUST_LOG").unwrap_or_else(|_| "agent=info".into()),
         ))
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    let apprentice_name =
-        std::env::var("APPRENTICE_NAME").unwrap_or_else(|_| "unnamed".to_string());
+    let agent_name = std::env::var("AGENT_NAME").unwrap_or_else(|_| "unnamed".to_string());
     let port = std::env::var("GRPC_PORT").unwrap_or_else(|_| "50051".to_string());
 
-    info!("Apprentice {} starting on port {}", apprentice_name, port);
+    info!("Agent {} starting on port {}", agent_name, port);
 
     let addr: SocketAddr = format!("0.0.0.0:{}", port).parse().map_err(|e| {
         error!("Failed to parse address: {}", e);
         e
     })?;
 
-    info!("Apprentice {} awakening on {}", apprentice_name, addr);
+    info!("Agent {} awakening on {}", agent_name, addr);
 
-    info!("Creating apprentice server...");
-    let apprentice = server::ApprenticeServer::new(apprentice_name);
-    let apprentice_service = server::spells::apprentice_server::ApprenticeServer::new(apprentice);
+    info!("Creating agent server...");
+    let agent = server::AgentServer::new(agent_name);
+    let agent_service = server::spells::agent_server::AgentServer::new(agent);
 
     info!("Starting gRPC server...");
 
@@ -47,14 +45,14 @@ async fn main() -> Result<()> {
     });
 
     Server::builder()
-        .add_service(apprentice_service)
+        .add_service(agent_service)
         .serve_with_shutdown(addr, async {
             shutdown_rx.await.ok();
             info!("Graceful shutdown initiated");
         })
         .await
         .map_err(|e| {
-            error!("Apprentice server failed: {}", e);
+            error!("Agent server failed: {}", e);
             e
         })?;
 

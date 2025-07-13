@@ -1,6 +1,6 @@
 # 📖 Book of Enchantments
 
-A collection of example spells to cast through your apprentices.
+A collection of example spells to cast through your agents.
 
 ## Basic Incantations
 
@@ -31,8 +31,8 @@ srcrr spell Dumbledore "Create a lesson plan for teaching recursion to beginners
 ## Multiple Apprentices
 
 ```bash
-# Summon a council of apprentices with one command
-srcrr summon Alice Bob Carol
+# Create a council of agents with one command
+srcrr create Alice Bob Carol
 
 # Have them work on different tasks
 srcrr spell Alice "Design a REST API for a todo application"
@@ -45,7 +45,7 @@ srcrr ps
 # Dismiss the council with one command
 srcrr rm Alice Bob Carol
 
-# Or dismiss all apprentices at once
+# Or dismiss all agents at once
 # srcrr rm -a
 ```
 

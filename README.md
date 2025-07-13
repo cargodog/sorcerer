@@ -1,12 +1,12 @@
 # 🧙‍♂️ Sorcerer - The Magical AI Orchestrator
 
-> *"The old sorcerer himself was not present to watch over his apprentice..."*
+> *"The old sorcerer himself was not present to watch over his agent..."*
 
 An orchestration tool for managing AI agents. Sorcerer lets you spawn, manage,
-and communicate with Claude AI agents running in isolated containers, and
+and manage agents running in isolated containers, and
 orchestrate them to collaborate on collaborative tasks. An agent may be allowed
 to take over orchestration for fully automated problem solving, but the
-sorcerer should keep an eye on his apprentice, lest he relearn old lessons.
+sorcerer should keep an eye on his agent, lest he relearn old lessons.
 
 <div align="center">
 
@@ -17,13 +17,12 @@ sorcerer should keep an eye on his apprentice, lest he relearn old lessons.
 ## 📜 The Legend
 
 Tool allows you to:
-- **Summon apprentices** - spawn a new agent in its own container
-- **Command them** - send chat prompts
-- **List your domain** - list active apprentices
+- **Summon agents** - spawn a new agent in its own container
+- **List your domain** - list active agents
 - **Get overview** - check detailed status
 - **Kill them** - stop agent processes
 
-Each apprentice runs in its own isolated container, communicating through gRPC.
+Each agent runs in its own isolated container, communicating through gRPC.
 
 ## 🌟 Quick Start
 
@@ -56,64 +55,54 @@ Each apprentice runs in its own isolated container, communicating through gRPC.
    ```
 
 2. **Rust** toolchain (1.75 or later)
-3. **Anthropic API Key** for Claude
 
 ### Building the Artifacts
 
 ```bash
-# Build the apprentice image (works with both Podman and Docker)
+# Build the agent image (works with both Podman and Docker)
 cd sorcerer
-podman build -f apprentice/Containerfile -t sorcerer-apprentice:latest .
-# OR: docker build -f apprentice/Containerfile -t sorcerer-apprentice:latest .
+podman build -f agent/Containerfile -t sorcerer-agent:latest .
+# OR: docker build -f agent/Containerfile -t sorcerer-agent:latest .
 
 # Build the sorcerer CLI
 cargo build --release
 ```
 
-### Summoning Your First Apprentice
+### Creating Your First Apprentice
 
 ```bash
-# Set your Claude API key
-export ANTHROPIC_API_KEY="your-key-here"
+# Create an agent named "Mickey"
+./target/release/srcrr create Mickey
 
-# Summon an apprentice named "Mickey"
-./target/release/srcrr summon Mickey
+# Create multiple agents at once
+./target/release/srcrr create Alice Bob Carol
 
-# Summon multiple apprentices at once
-./target/release/srcrr summon Alice Bob Carol
-
-# Send a message to Mickey
-./target/release/srcrr tell Mickey "What is the meaning of life?"
-
-# Check on all your apprentices
-./target/release/srcrr ls
+# Check on all your agents
+./target/release/srcrr list
 
 # When done, remove Mickey
 ./target/release/srcrr rm Mickey
 
-# Remove multiple apprentices at once
+# Remove multiple agents at once
 ./target/release/srcrr rm Alice Bob
 
-# Remove all apprentices
+# Remove all agents
 ./target/release/srcrr rm -a
 ```
 
 ## 🔮 Commands of Power
 
-### `srcrr summon <name>...`
-Brings forth one or more apprentices from the mystical realm. Each apprentice is bound to serve until removed. You can summon multiple apprentices by providing multiple names.
+### `srcrr create <name>...`
+Brings forth one or more agents from the mystical realm. Each agent is bound to serve until removed. You can create multiple agents by providing multiple names.
 
-### `srcrr tell <name> "<message>"`
-Sends a message to an apprentice (sends a prompt to Claude). The apprentice will channel the wisdom of the ancients to fulfill your request.
-
-### `srcrr ls`
-Reveals all apprentices currently in your service. A simple way to see who answers to your call.
+### `srcrr list`
+Reveals all agents currently in your service. A simple way to see who answers to your call.
 
 ### `srcrr ps`
-Shows detailed information about each apprentice's state and recent activity.
+Shows detailed information about each agent's state and recent activity.
 
 ### `srcrr rm <name>... | -a`
-Stops and removes one or more apprentice containers, cleaning up all traces of their existence. You can remove multiple apprentices by providing multiple names, or use `-a`/`--all` to remove all apprentices at once.
+Stops and removes one or more agent containers, cleaning up all traces of their existence. You can remove multiple agents by providing multiple names, or use `-a`/`--all` to remove all agents at once.
 
 ## 🏗️ Architecture
 
@@ -122,30 +111,30 @@ Stops and removes one or more apprentice containers, cleaning up all traces of t
 │   Sorcerer  │◄──────────────────────►│   Apprentice   │
 │    (CLI)    │                        │    (Agent)     │
 └─────────────┘                        └────────────────┘
-      │                                         │
-      │                                         │
-      ▼                                         ▼
- Podman/Docker API                         Claude API
+      │                                        
+      │                                        
+      ▼                                        
+ Podman/Docker API
 ```
 
 - **Sorcerer**: The master process that orchestrates everything
 - **Apprentices**: Individual containers running gRPC servers
-- **Spells Protocol**: gRPC-based communication for reliable incantations
-- **Isolation**: Each apprentice operates in its own container
+- **Spells Protocol**: gRPC-based communication between sorcerer and agents
+- **Isolation**: Each agent operates in its own container
 - **Runtime**: Supports both Podman (rootless) and Docker (with daemon)
 
 ## ⚠️ Words of Warning
 
-Be careful not to summon more helpers than you can manage. Each apprentice
-consumes resources and makes API calls to Claude.
+Be careful not to create more helpers than you can manage. Each agent
+consumes resources.
 
-Remember to kill your apprentices when done - they won't clean up after
+Remember to kill your agents when done - they won't clean up after
 themselves!
 
 ## 🎭 In the Spirit of the Tale
 
 This tool embodies the whimsical yet powerful nature of The Sorcerer's
-Apprentice. While our apprentices won't flood your workshop with water, they
+Apprentice. While our agents won't flood your workshop with water, they
 will faithfully execute your commands through the magic of AI.
 
 Use this power wisely, young sorcerer!

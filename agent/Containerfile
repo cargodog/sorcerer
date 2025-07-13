@@ -11,35 +11,35 @@ RUN apt-get update && apt-get install -y \
 
 # Copy workspace files
 COPY Cargo.toml /app/
-COPY apprentice/Cargo.toml /app/apprentice/
+COPY agent/Cargo.toml /app/agent/
 COPY proto /app/proto
 COPY build.rs /app/
-COPY apprentice/build.rs /app/apprentice/
+COPY agent/build.rs /app/agent/
 
 # Create dummy main files to cache dependencies
-RUN mkdir -p src apprentice/src && \
+RUN mkdir -p src agent/src && \
     echo "fn main() {}" > src/main.rs && \
-    echo "fn main() {}" > apprentice/src/main.rs
+    echo "fn main() {}" > agent/src/main.rs
 
 # Build dependencies
-RUN cargo build --release -p apprentice
+RUN cargo build --release -p agent
 
 # Remove the dummy source and the dummy binary to force rebuild
-RUN rm -rf src apprentice/src target/release/apprentice
+RUN rm -rf src agent/src target/release/agent
 
 # Copy actual source code
-COPY apprentice/src /app/apprentice/src
+COPY agent/src /app/agent/src
 
 # Build the apprentice with the real source code
-RUN touch apprentice/src/main.rs && cargo build --release -p apprentice
+RUN touch agent/src/main.rs && cargo build --release -p agent
 
 # Runtime stage
 FROM debian:bookworm-slim
 
 RUN apt-get update && apt-get install -y ca-certificates libssl3 && rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /app/target/release/apprentice /usr/local/bin/apprentice
+COPY --from=builder /app/target/release/agent /usr/local/bin/agent
 
 EXPOSE 50051
 
-CMD ["apprentice"]
+CMD ["agent"]

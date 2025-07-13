@@ -21,26 +21,26 @@ mod sorcerer_tests {
     }
 
     #[test]
-    fn test_apprentice_name_extraction() {
-        // Test the logic that extracts apprentice names from container names
-        let container_name = "/apprentice-test_name";
-        let apprentice_name = container_name.strip_prefix("/apprentice-").unwrap();
+    fn test_agent_name_extraction() {
+        // Test the logic that extracts agent names from container names
+        let container_name = "/agent-test_name";
+        let agent_name = container_name.strip_prefix("/agent-").unwrap();
 
-        assert_eq!(apprentice_name, "test_name");
+        assert_eq!(agent_name, "test_name");
     }
 
     #[test]
-    fn test_apprentice_name_extraction_various_formats() {
+    fn test_agent_name_extraction_various_formats() {
         let test_cases = vec![
-            ("/apprentice-alice", "alice"),
-            ("/apprentice-bob_123", "bob_123"),
-            ("/apprentice-test-name", "test-name"),
-            ("/apprentice-a", "a"),
+            ("/agent-alice", "alice"),
+            ("/agent-bob_123", "bob_123"),
+            ("/agent-test-name", "test-name"),
+            ("/agent-a", "a"),
         ];
 
         for (container_name, expected_name) in test_cases {
-            let apprentice_name = container_name.strip_prefix("/apprentice-").unwrap();
-            assert_eq!(apprentice_name, expected_name);
+            let agent_name = container_name.strip_prefix("/agent-").unwrap();
+            assert_eq!(agent_name, expected_name);
         }
     }
 
@@ -90,17 +90,17 @@ mod sorcerer_tests {
 
     #[test]
     fn test_container_name_format() {
-        // Test the container naming format used in summon_apprentice
-        let apprentice_name = "test_apprentice";
-        let container_name = format!("apprentice-{apprentice_name}");
+        // Test the container naming format used in create_agent
+        let agent_name = "test_agent";
+        let container_name = format!("agent-{agent_name}");
 
-        assert_eq!(container_name, "apprentice-test_apprentice");
-        assert!(container_name.starts_with("apprentice-"));
+        assert_eq!(container_name, "agent-test_agent");
+        assert!(container_name.starts_with("agent-"));
     }
 
     #[test]
     fn test_grpc_address_format() {
-        // Test the gRPC address format used to connect to apprentices
+        // Test the gRPC address format used to connect to agents
         let port = 50051u16;
         let addr = format!("http://127.0.0.1:{port}");
 
@@ -111,35 +111,32 @@ mod sorcerer_tests {
     #[test]
     fn test_environment_variable_format() {
         // Test the environment variable format used in container creation
-        let apprentice_name = "test_name";
+        let agent_name = "test_name";
         let port = 50051u16;
-        let api_key = "test_key";
 
         let env_vars = [
-            format!("APPRENTICE_NAME={apprentice_name}"),
+            format!("APPRENTICE_NAME={agent_name}"),
             format!("GRPC_PORT={port}"),
-            format!("ANTHROPIC_API_KEY={api_key}"),
         ];
 
         assert_eq!(env_vars[0], "APPRENTICE_NAME=test_name");
         assert_eq!(env_vars[1], "GRPC_PORT=50051");
-        assert_eq!(env_vars[2], "ANTHROPIC_API_KEY=test_key");
     }
 
     #[test]
-    fn test_apprentice_existence_check() {
-        // Test the logic for checking if an apprentice already exists
-        let mut apprentices = HashMap::new();
-        let apprentice_name = "test_apprentice";
+    fn test_agent_existence_check() {
+        // Test the logic for checking if an agent already exists
+        let mut agents = HashMap::new();
+        let agent_name = "test_agent";
 
         // Initially should not exist
-        assert!(!apprentices.contains_key(apprentice_name));
+        assert!(!agents.contains_key(agent_name));
 
-        // Add apprentice
-        apprentices.insert(apprentice_name.to_string(), "dummy_value".to_string());
+        // Add agent
+        agents.insert(agent_name.to_string(), "dummy_value".to_string());
 
         // Now should exist
-        assert!(apprentices.contains_key(apprentice_name));
+        assert!(agents.contains_key(agent_name));
     }
 
     #[test]
@@ -185,24 +182,24 @@ mod sorcerer_tests {
     }
 
     #[test]
-    fn test_apprentice_removal_logic() {
-        // Test the apprentice removal logic used in remove_apprentice
-        let mut apprentices = HashMap::new();
-        let apprentice_name = "test_apprentice";
+    fn test_agent_removal_logic() {
+        // Test the agent removal logic used in remove_agent
+        let mut agents = HashMap::new();
+        let agent_name = "test_agent";
 
-        // Add apprentice
-        apprentices.insert(apprentice_name.to_string(), "dummy_value".to_string());
+        // Add agent
+        agents.insert(agent_name.to_string(), "dummy_value".to_string());
 
-        assert!(apprentices.contains_key(apprentice_name));
+        assert!(agents.contains_key(agent_name));
 
-        // Remove apprentice
-        let removed_apprentice = apprentices.remove(apprentice_name);
+        // Remove agent
+        let removed_agent = agents.remove(agent_name);
 
-        assert!(removed_apprentice.is_some());
-        assert!(!apprentices.contains_key(apprentice_name));
+        assert!(removed_agent.is_some());
+        assert!(!agents.contains_key(agent_name));
 
-        // Try to remove non-existent apprentice
-        let non_existent = apprentices.remove("non_existent");
+        // Try to remove non-existent agent
+        let non_existent = agents.remove("non_existent");
         assert!(non_existent.is_none());
     }
 
@@ -267,14 +264,14 @@ mod sorcerer_tests {
             // Verify it doesn't contain null bytes
             assert!(!reason.contains('\0'));
             // Verify it can be used in logging format
-            let log_msg = format!("Killing apprentice: {reason}");
-            assert!(log_msg.starts_with("Killing apprentice: "));
+            let log_msg = format!("Killing agent: {reason}");
+            assert!(log_msg.starts_with("Killing agent: "));
         }
     }
 
     #[test]
     fn test_status_response_states() {
-        // Test all valid apprentice states
+        // Test all valid agent states
         let valid_states = vec!["idle", "casting", "error"];
 
         for state in &valid_states {

@@ -10,7 +10,7 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             image_name: env::var("SORCERER_IMAGE")
-                .unwrap_or_else(|_| "sorcerer-apprentice:latest".to_string()),
+                .unwrap_or_else(|_| "sorcerer-agent:latest".to_string()),
             starting_port: env::var("SORCERER_STARTING_PORT")
                 .ok()
                 .and_then(|p| p.parse().ok())

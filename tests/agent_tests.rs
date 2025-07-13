@@ -2,33 +2,29 @@ use std::net::SocketAddr;
 use std::str::FromStr;
 
 #[cfg(test)]
-mod apprentice_tests {
+mod agent_tests {
     use super::*;
 
     #[test]
-    fn test_apprentice_name_env_var_parsing() {
-        // Test parsing of APPRENTICE_NAME environment variable
-        let env_var = "APPRENTICE_NAME=test_apprentice";
-        let apprentice_name = env_var
-            .strip_prefix("APPRENTICE_NAME=")
-            .unwrap_or("unnamed");
+    fn test_agent_name_env_var_parsing() {
+        // Test parsing of AGENT_NAME environment variable
+        let env_var = "AGENT_NAME=test_agent";
+        let agent_name = env_var.strip_prefix("AGENT_NAME=").unwrap_or("unnamed");
 
-        assert_eq!(apprentice_name, "test_apprentice");
+        assert_eq!(agent_name, "test_agent");
     }
 
     #[test]
-    fn test_apprentice_name_env_var_default() {
-        // Test default when APPRENTICE_NAME is not set
+    fn test_agent_name_env_var_default() {
+        // Test default when AGENT_NAME is not set
         let env_var = "";
-        let apprentice_name = if env_var.is_empty() {
+        let agent_name = if env_var.is_empty() {
             "unnamed"
         } else {
-            env_var
-                .strip_prefix("APPRENTICE_NAME=")
-                .unwrap_or("unnamed")
+            env_var.strip_prefix("AGENT_NAME=").unwrap_or("unnamed")
         };
 
-        assert_eq!(apprentice_name, "unnamed");
+        assert_eq!(agent_name, "unnamed");
     }
 
     #[test]
@@ -82,7 +78,7 @@ mod apprentice_tests {
 
     #[test]
     fn test_grpc_address_format() {
-        // Test the gRPC address format used by apprentices
+        // Test the gRPC address format used by agents
         let port = "50051";
         let addr_str = format!("0.0.0.0:{port}");
 
@@ -94,21 +90,21 @@ mod apprentice_tests {
     }
 
     #[test]
-    fn test_apprentice_server_name_validation() {
-        // Test various apprentice names that should be valid
+    fn test_agent_server_name_validation() {
+        // Test various agent names that should be valid
         let valid_names = vec![
             "alice",
             "bob123",
-            "test_apprentice",
-            "apprentice-with-dashes",
+            "test_agent",
+            "agent-with-dashes",
             "a",
-            "very_long_apprentice_name_with_underscores_and_numbers_123",
+            "very_long_agent_name_with_underscores_and_numbers_123",
         ];
 
         for name in valid_names {
             // Test that names can be used in various contexts
-            let env_var = format!("APPRENTICE_NAME={name}");
-            let extracted_name = env_var.strip_prefix("APPRENTICE_NAME=").unwrap();
+            let env_var = format!("AGENT_NAME={name}");
+            let extracted_name = env_var.strip_prefix("AGENT_NAME=").unwrap();
 
             assert_eq!(extracted_name, name);
             assert!(!extracted_name.is_empty());
@@ -117,7 +113,7 @@ mod apprentice_tests {
 
     #[test]
     fn test_port_range_validation() {
-        // Test valid port ranges for apprentice gRPC servers
+        // Test valid port ranges for agent gRPC servers
         let valid_ports = vec![
             "1024",  // First non-privileged port
             "50051", // Default gRPC port
@@ -168,26 +164,23 @@ mod apprentice_tests {
     }
 
     #[test]
-    fn test_apprentice_logging_format() {
-        // Test the logging format used by apprentices
-        let apprentice_name = "test_apprentice";
+    fn test_agent_logging_format() {
+        // Test the logging format used by agents
+        let agent_name = "test_agent";
         let port = "50051";
 
-        let start_message = format!("Apprentice {apprentice_name} starting with port {port}");
-        let awaken_message = format!("Apprentice {apprentice_name} awakening on 0.0.0.0:{port}");
+        let start_message = format!("Agent {agent_name} starting with port {port}");
+        let awaken_message = format!("Agent {agent_name} awakening on 0.0.0.0:{port}");
 
-        assert_eq!(
-            start_message,
-            "Apprentice test_apprentice starting with port 50051"
-        );
+        assert_eq!(start_message, "Agent test_agent starting with port 50051");
         assert_eq!(
             awaken_message,
-            "Apprentice test_apprentice awakening on 0.0.0.0:50051"
+            "Agent test_agent awakening on 0.0.0.0:50051"
         );
 
-        assert!(start_message.contains(apprentice_name));
+        assert!(start_message.contains(agent_name));
         assert!(start_message.contains(port));
-        assert!(awaken_message.contains(apprentice_name));
+        assert!(awaken_message.contains(agent_name));
         assert!(awaken_message.contains(port));
     }
 
@@ -195,12 +188,12 @@ mod apprentice_tests {
     fn test_environment_variable_extraction() {
         // Test extraction of environment variables with various formats
         let env_test_cases = vec![
-            ("APPRENTICE_NAME=alice", "APPRENTICE_NAME", Some("alice")),
+            ("AGENT_NAME=alice", "AGENT_NAME", Some("alice")),
             ("GRPC_PORT=50051", "GRPC_PORT", Some("50051")),
-            ("INVALID_VAR=value", "APPRENTICE_NAME", None),
-            ("APPRENTICE_NAME=", "APPRENTICE_NAME", Some("")),
-            ("=value", "APPRENTICE_NAME", None),
-            ("", "APPRENTICE_NAME", None),
+            ("INVALID_VAR=value", "AGENT_NAME", None),
+            ("AGENT_NAME=", "AGENT_NAME", Some("")),
+            ("=value", "AGENT_NAME", None),
+            ("", "AGENT_NAME", None),
         ];
 
         for (env_var, key, expected) in env_test_cases {
@@ -218,17 +211,17 @@ mod apprentice_tests {
     #[test]
     fn test_server_startup_sequence() {
         // Test the logical sequence of server startup
-        let apprentice_name = "test_apprentice";
+        let agent_name = "test_agent";
         let port = "50051";
 
         // Step 1: Extract environment variables
-        let env_name = format!("APPRENTICE_NAME={apprentice_name}");
+        let env_name = format!("AGENT_NAME={agent_name}");
         let env_port = format!("GRPC_PORT={port}");
 
-        let extracted_name = env_name.strip_prefix("APPRENTICE_NAME=").unwrap();
+        let extracted_name = env_name.strip_prefix("AGENT_NAME=").unwrap();
         let extracted_port = env_port.strip_prefix("GRPC_PORT=").unwrap();
 
-        assert_eq!(extracted_name, apprentice_name);
+        assert_eq!(extracted_name, agent_name);
         assert_eq!(extracted_port, port);
 
         // Step 2: Parse socket address
@@ -245,7 +238,7 @@ mod apprentice_tests {
 
     #[test]
     fn test_error_handling_scenarios() {
-        // Test various error scenarios that might occur during apprentice startup
+        // Test various error scenarios that might occur during agent startup
 
         // Invalid port parsing
         let invalid_port = "invalid_port";
@@ -264,8 +257,8 @@ mod apprentice_tests {
     }
 
     #[test]
-    fn test_apprentice_name_edge_cases() {
-        // Test edge cases for apprentice names
+    fn test_agent_name_edge_cases() {
+        // Test edge cases for agent names
         let edge_cases = vec![
             ("", "unnamed"),  // Empty name should default to "unnamed"
             ("a", "a"),       // Single character
@@ -289,7 +282,7 @@ mod apprentice_tests {
     fn test_grpc_server_configuration() {
         // Test gRPC server configuration parameters
         let configs = vec![
-            ("test_apprentice", "50051"),
+            ("test_agent", "50051"),
             ("alice", "50100"),
             ("bob", "50200"),
             ("charlie", "65535"),

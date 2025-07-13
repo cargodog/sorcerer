@@ -3,13 +3,13 @@ use predicates::prelude::*;
 use serial_test::serial;
 use std::process::Command as StdCommand;
 
-struct ApprenticeGuard {
+struct AgentGuard {
     name: String,
 }
 
-impl ApprenticeGuard {
+impl AgentGuard {
     fn new(name: &str) -> Self {
-        // Clean up any existing apprentice with this name first
+        // Clean up any existing agent with this name first
         let _ = StdCommand::new("./target/release/srcrr")
             .args(["rm", name])
             .output();
@@ -20,7 +20,7 @@ impl ApprenticeGuard {
     }
 }
 
-impl Drop for ApprenticeGuard {
+impl Drop for AgentGuard {
     fn drop(&mut self) {
         // Ensure cleanup happens even if test panics
         let _ = StdCommand::new("./target/release/srcrr")
@@ -37,14 +37,12 @@ fn test_help_command() {
     cmd.assert()
         .success()
         .stdout(predicate::str::contains(
-            "🧙‍♂️ The Sorcerer - Command apprentices to do your bidding",
+            "🧙‍♂️ The Sorcerer - Command agents to do your bidding",
         ))
-        .stdout(predicate::str::contains("summon"))
-        .stdout(predicate::str::contains("tell"))
-        .stdout(predicate::str::contains("ls"))
+        .stdout(predicate::str::contains("create"))
+        .stdout(predicate::str::contains("list"))
         .stdout(predicate::str::contains("rm"))
-        .stdout(predicate::str::contains("ps"))
-        .stdout(predicate::str::contains("show"));
+        .stdout(predicate::str::contains("ps"));
 }
 
 #[test]
@@ -59,35 +57,25 @@ fn test_version_command() {
 }
 
 #[test]
-fn test_summon_missing_name() {
+fn test_create_missing_name() {
     let mut cmd = Command::cargo_bin("srcrr").unwrap();
-    cmd.arg("summon");
+    cmd.arg("create");
 
     // With Vec<String>, empty args is valid, should show error message
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains("❌ No apprentice names provided"));
-}
-
-#[test]
-fn test_tell_missing_args() {
-    let mut cmd = Command::cargo_bin("srcrr").unwrap();
-    cmd.arg("tell");
-
-    cmd.assert()
-        .failure()
-        .stderr(predicate::str::contains("required"));
+        .stdout(predicate::str::contains("❌ No agent names provided"));
 }
 
 #[test]
 #[serial]
-fn test_ls_command() {
+fn test_list_command() {
     let mut cmd = Command::cargo_bin("srcrr").unwrap();
-    cmd.arg("ls");
+    cmd.arg("list");
 
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains("📋 Listing apprentices..."));
+        .stdout(predicate::str::contains("📋 Listing agents..."));
 }
 
 #[test]
@@ -98,7 +86,7 @@ fn test_ps_command() {
 
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains("📊 Overview of apprentices..."));
+        .stdout(predicate::str::contains("📊 Overview of agents..."));
 }
 
 #[test]
@@ -109,7 +97,7 @@ fn test_ps_with_lines_option() {
 
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains("📊 Overview of apprentices..."));
+        .stdout(predicate::str::contains("📊 Overview of agents..."));
 }
 
 #[test]
@@ -130,103 +118,76 @@ fn test_rm_missing_name() {
     // With Vec<String>, empty args is valid, should show error message
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains("❌ No apprentice names provided"));
+        .stdout(predicate::str::contains("❌ No agent names provided"));
 }
 
 #[test]
-fn test_rm_nonexistent_apprentice() {
+fn test_rm_nonexistent_agent() {
     let mut cmd = Command::cargo_bin("srcrr").unwrap();
-    cmd.args(["rm", "nonexistent-apprentice"]);
+    cmd.args(["rm", "nonexistent-agent"]);
 
     cmd.assert()
         .success() // Command itself succeeds, but shows error message
-        .stdout(predicate::str::contains("💀 Removing apprentice"))
+        .stdout(predicate::str::contains("💀 Removing agent"))
         .stdout(predicate::str::contains("⚠️  Failed to remove"));
 }
 
 #[test]
 #[serial]
-// Requires working container runtime
-fn test_summon_and_tell_flow() {
-    let _guard = ApprenticeGuard::new("test-flow");
+#[ignore = "Requires working container runtime"]
+fn test_create_and_tell_flow() {
+    let _guard = AgentGuard::new("test-flow");
 
-    // Summon an apprentice
+    // Summon an agent
     let mut cmd = Command::cargo_bin("srcrr").unwrap();
-    cmd.args(["summon", "test-flow"]);
+    cmd.args(["create", "test-flow"]);
 
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains(
-            "🌟 Summoning apprentice test-flow",
-        ))
-        .stdout(predicate::str::contains(
-            "✨ Apprentice test-flow has answered",
-        ));
+        .stdout(predicate::str::contains("🌟 Creating agent test-flow"))
+        .stdout(predicate::str::contains("✨ Agent test-flow has answered"));
 
-    // Send a message
+    // List should include our agent
     let mut cmd = Command::cargo_bin("srcrr").unwrap();
-    cmd.args(["tell", "test-flow", "What is 2+2?"]);
-
-    cmd.assert()
-        .success()
-        .stdout(predicate::str::contains("📜 Sending message"))
-        .stdout(predicate::str::contains("🔮 The apprentice responds"));
-
-    // List should include our apprentice
-    let mut cmd = Command::cargo_bin("srcrr").unwrap();
-    cmd.arg("ls");
+    cmd.arg("list");
 
     cmd.assert()
         .success()
         .stdout(predicate::str::contains("test-flow"));
 
-    // Remove the apprentice
+    // Remove the agent
     let mut cmd = Command::cargo_bin("srcrr").unwrap();
     cmd.args(["rm", "test-flow"]);
 
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains("💀 Removing apprentice test-flow"))
+        .stdout(predicate::str::contains("💀 Removing agent test-flow"))
         .stdout(predicate::str::contains(
             "⚰️  Apprentice test-flow has been removed",
         ));
 }
 
 #[test]
-fn test_summon_command_help() {
+fn test_create_command_help() {
     let mut cmd = Command::cargo_bin("srcrr").unwrap();
-    cmd.args(["summon", "--help"]);
+    cmd.args(["create", "--help"]);
 
     cmd.assert()
         .success()
         .stdout(predicate::str::contains(
-            "Create and start new apprentice containers",
+            "Create and start new agent containers",
         ))
         .stdout(predicate::str::contains("NAMES"));
 }
 
 #[test]
-fn test_tell_command_help() {
+fn test_list_command_help() {
     let mut cmd = Command::cargo_bin("srcrr").unwrap();
-    cmd.args(["tell", "--help"]);
+    cmd.args(["list", "--help"]);
 
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains(
-            "Send a message to an apprentice and get its response",
-        ))
-        .stdout(predicate::str::contains("NAME"))
-        .stdout(predicate::str::contains("MESSAGE"));
-}
-
-#[test]
-fn test_ls_command_help() {
-    let mut cmd = Command::cargo_bin("srcrr").unwrap();
-    cmd.args(["ls", "--help"]);
-
-    cmd.assert()
-        .success()
-        .stdout(predicate::str::contains("List all active apprentices"));
+        .stdout(predicate::str::contains("List all active agents"));
 }
 
 #[test]
@@ -236,9 +197,7 @@ fn test_rm_command_help() {
 
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains(
-            "Stop and remove apprentice containers",
-        ))
+        .stdout(predicate::str::contains("Stop and remove agent containers"))
         .stdout(predicate::str::contains("NAMES"));
 }
 
@@ -250,45 +209,24 @@ fn test_ps_command_help() {
     cmd.assert()
         .success()
         .stdout(predicate::str::contains(
-            "Show detailed status information for all apprentices",
+            "Show detailed status information for all agents",
         ))
         .stdout(predicate::str::contains("--lines"));
 }
 
 #[test]
-fn test_tell_nonexistent_apprentice() {
-    let mut cmd = Command::cargo_bin("srcrr").unwrap();
-    cmd.args(["tell", "nonexistent-apprentice", "Hello"]);
-
-    cmd.assert()
-        .success() // Command itself succeeds, but shows error message
-        .stdout(predicate::str::contains(
-            "📜 Sending message to apprentice nonexistent-apprentice",
-        ))
-        .stdout(predicate::str::contains("💥 The message failed"));
-}
-
-#[test]
-fn test_tell_invalid_args() {
-    // Test with only name, no message
-    let mut cmd = Command::cargo_bin("srcrr").unwrap();
-    cmd.args(["tell", "test-apprentice"]);
-
-    cmd.assert()
-        .failure()
-        .stderr(predicate::str::contains("required"));
-}
-
-#[test]
+#[serial]
 fn test_multiple_subcommands_error() {
+    let _guard = AgentGuard::new("ls");
+
     // Test that we can't use multiple subcommands
     let mut cmd = Command::cargo_bin("srcrr").unwrap();
-    cmd.args(["summon", "ls"]);
+    cmd.args(["create", "ls"]);
 
-    // This should treat "ls" as an apprentice name, not a command
+    // This should treat "ls" as an agent name, not a command
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains("🌟 Summoning apprentice ls"));
+        .stdout(predicate::str::contains("🌟 Creating agent ls"));
 }
 
 #[test]
@@ -302,115 +240,66 @@ fn test_ps_with_negative_lines() {
 }
 
 #[test]
+#[serial]
 fn test_empty_ls_output() {
-    // Ensure all apprentices are removed first
+    // Ensure all agents are removed first
     let _ = StdCommand::new("./target/release/srcrr")
         .args(["rm", "-a"])
         .output();
 
     let mut cmd = Command::cargo_bin("srcrr").unwrap();
-    cmd.arg("ls");
+    cmd.arg("list");
 
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains("📋 Listing apprentices"))
+        .stdout(predicate::str::contains("📋 Listing agents"))
         .stdout(predicate::str::contains(
-            "The realm is empty - no apprentices found",
+            "The realm is empty - no agents found",
         ));
 }
 
+// New tests for multiple agent functionality
+
 #[test]
-fn test_show_command_help() {
+fn test_create_multiple_agents() {
     let mut cmd = Command::cargo_bin("srcrr").unwrap();
-    cmd.args(["show", "--help"]);
+    cmd.args(["create", "alice", "bob", "carol"]);
 
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains(
-            "View and scroll through chat history with an apprentice",
-        ))
-        .stdout(predicate::str::contains("NAME"))
-        .stdout(predicate::str::contains("--lines"));
-}
-
-#[test]
-fn test_show_nonexistent_apprentice() {
-    let mut cmd = Command::cargo_bin("srcrr").unwrap();
-    cmd.args(["show", "nonexistent-apprentice"]);
-
-    cmd.assert()
-        .success() // Command itself succeeds, but shows error message
-        .stdout(predicate::str::contains(
-            "📜 Viewing chat history for apprentice nonexistent-apprentice",
-        ))
-        .stdout(predicate::str::contains(
-            "💥 Failed to retrieve chat history",
-        ));
-}
-
-#[test]
-fn test_show_with_lines_option() {
-    let mut cmd = Command::cargo_bin("srcrr").unwrap();
-    cmd.args(["show", "test-apprentice", "--lines", "5"]);
-
-    // Should fail gracefully for non-existent apprentice
-    cmd.assert()
-        .success()
-        .stdout(predicate::str::contains("📜 Viewing chat history"));
-}
-
-#[test]
-fn test_show_command_validation() {
-    // Test without apprentice name - should fail
-    let mut cmd = Command::cargo_bin("srcrr").unwrap();
-    cmd.arg("show");
-
-    cmd.assert()
-        .failure()
-        .stderr(predicate::str::contains("required"));
-}
-
-// New tests for multiple apprentice functionality
-
-#[test]
-fn test_summon_multiple_apprentices() {
-    let mut cmd = Command::cargo_bin("srcrr").unwrap();
-    cmd.args(["summon", "alice", "bob", "carol"]);
-
-    cmd.assert()
-        .success()
-        .stdout(predicate::str::contains("🌟 Summoning apprentice alice"))
-        .stdout(predicate::str::contains("🌟 Summoning apprentice bob"))
-        .stdout(predicate::str::contains("🌟 Summoning apprentice carol"))
+        .stdout(predicate::str::contains("🌟 Creating agent alice"))
+        .stdout(predicate::str::contains("🌟 Creating agent bob"))
+        .stdout(predicate::str::contains("🌟 Creating agent carol"))
         .stdout(predicate::str::contains("📊 Summary:"));
 }
 
 #[test]
-fn test_rm_multiple_apprentices() {
+fn test_rm_multiple_agents() {
     let mut cmd = Command::cargo_bin("srcrr").unwrap();
     cmd.args(["rm", "alice", "bob"]);
 
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains("💀 Removing apprentice alice"))
-        .stdout(predicate::str::contains("💀 Removing apprentice bob"))
+        .stdout(predicate::str::contains("💀 Removing agent alice"))
+        .stdout(predicate::str::contains("💀 Removing agent bob"))
         .stdout(predicate::str::contains("📊 Summary:"));
 }
 
 #[test]
+#[serial]
 fn test_rm_all_flag() {
-    // First ensure we have no apprentices
+    // First ensure we have no agents
     let _ = StdCommand::new("./target/release/srcrr")
         .args(["rm", "-a"])
         .output();
 
-    // Test with no apprentices
+    // Test with no agents
     let mut cmd = Command::cargo_bin("srcrr").unwrap();
     cmd.args(["rm", "-a"]);
 
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains("📭 No apprentices to remove"));
+        .stdout(predicate::str::contains("📭 No agents to remove"));
 }
 
 #[test]
@@ -419,7 +308,7 @@ fn test_rm_all_flag_long_form() {
     cmd.args(["rm", "--all"]);
 
     cmd.assert().success().stdout(
-        predicate::str::contains("No apprentices to remove")
+        predicate::str::contains("No agents to remove")
             .or(predicate::str::contains("Removing all")),
     );
 }
@@ -430,53 +319,49 @@ fn test_rm_with_all_flag_and_names_conflict() {
     let mut cmd = Command::cargo_bin("srcrr").unwrap();
     cmd.args(["rm", "-a", "alice", "bob"]);
 
-    // This should remove all apprentices, ignoring the individual names
+    // This should remove all agents, ignoring the individual names
     cmd.assert().success().stdout(
-        predicate::str::contains("No apprentices to remove")
+        predicate::str::contains("No agents to remove")
             .or(predicate::str::contains("Removing all")),
     );
 }
 
 #[test]
-fn test_summon_single_apprentice() {
+fn test_create_single_agent() {
     let mut cmd = Command::cargo_bin("srcrr").unwrap();
-    cmd.args(["summon", "single-test"]);
+    cmd.args(["create", "single-test"]);
 
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains(
-            "🌟 Summoning apprentice single-test",
-        ))
-        // Should NOT show summary for single apprentice
+        .stdout(predicate::str::contains("🌟 Creating agent single-test"))
+        // Should NOT show summary for single agent
         .stdout(predicate::str::contains("📊 Summary:").not());
 }
 
 #[test]
-fn test_rm_single_apprentice() {
+fn test_rm_single_agent() {
     let mut cmd = Command::cargo_bin("srcrr").unwrap();
     cmd.args(["rm", "single-test"]);
 
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains(
-            "💀 Removing apprentice single-test",
-        ))
-        // Should NOT show summary for single apprentice
+        .stdout(predicate::str::contains("💀 Removing agent single-test"))
+        // Should NOT show summary for single agent
         .stdout(predicate::str::contains("📊 Summary:").not());
 }
 
 #[test]
 #[serial]
-// Requires working container runtime
-fn test_summon_and_rm_multiple_flow() {
+#[ignore = "Requires working container runtime"]
+fn test_create_and_rm_multiple_flow() {
     // Clean up first
     let _ = StdCommand::new("./target/release/srcrr")
         .args(["rm", "-a"])
         .output();
 
-    // Summon multiple apprentices
+    // Summon multiple agents
     let mut cmd = Command::cargo_bin("srcrr").unwrap();
-    cmd.args(["summon", "test-multi-1", "test-multi-2", "test-multi-3"]);
+    cmd.args(["create", "test-multi-1", "test-multi-2", "test-multi-3"]);
 
     cmd.assert()
         .success()
@@ -484,7 +369,7 @@ fn test_summon_and_rm_multiple_flow() {
 
     // List should show all three
     let mut cmd = Command::cargo_bin("srcrr").unwrap();
-    cmd.arg("ls");
+    cmd.arg("list");
 
     cmd.assert()
         .success()
@@ -502,7 +387,7 @@ fn test_summon_and_rm_multiple_flow() {
 
     // List should only show one
     let mut cmd = Command::cargo_bin("srcrr").unwrap();
-    cmd.arg("ls");
+    cmd.arg("list");
 
     cmd.assert()
         .success()
@@ -516,5 +401,5 @@ fn test_summon_and_rm_multiple_flow() {
 
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains("🗑️  Removing all 1 apprentices"));
+        .stdout(predicate::str::contains("🗑️  Removing all 1 agents"));
 }

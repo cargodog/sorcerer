@@ -14,25 +14,25 @@ pub mod spells {
     tonic::include_proto!("spells");
 }
 
-use spells::apprentice_client::ApprenticeClient;
-use spells::{ChatHistoryRequest, SpellRequest, StatusRequest};
+use spells::agent_client::AgentClient;
+use spells::{ChatHistoryRequest, StatusRequest};
 
-pub struct Apprentice {
+pub struct Agent {
     pub _name: String,
     pub container_id: String,
     pub _port: u16,
-    pub client: Option<ApprenticeClient<Channel>>,
+    pub client: Option<AgentClient<Channel>>,
 }
 
 pub struct Sorcerer {
     docker: Docker,
-    apprentices: Arc<Mutex<HashMap<String, Apprentice>>>,
+    agents: Arc<Mutex<HashMap<String, Agent>>>,
     next_port: Arc<Mutex<u16>>,
     config: AppConfig,
 }
 
 impl Sorcerer {
-    fn is_valid_apprentice_name(name: &str) -> bool {
+    fn is_valid_agent_name(name: &str) -> bool {
         !name.is_empty()
             && name.len() <= 32
             && name
@@ -95,22 +95,22 @@ impl Sorcerer {
 
         let mut sorcerer = Self {
             docker,
-            apprentices: Arc::new(Mutex::new(HashMap::new())),
+            agents: Arc::new(Mutex::new(HashMap::new())),
             next_port: Arc::new(Mutex::new(starting_port)),
             config,
         };
 
-        // Discover existing apprentice containers
-        sorcerer.discover_apprentices().await?;
+        // Discover existing agent containers
+        sorcerer.discover_agents().await?;
 
         Ok(sorcerer)
     }
 
-    async fn discover_apprentices(&mut self) -> Result<()> {
+    async fn discover_agents(&mut self) -> Result<()> {
         use bollard::container::ListContainersOptions;
 
         let mut filters = HashMap::new();
-        filters.insert("name".to_string(), vec!["apprentice-".to_string()]);
+        filters.insert("name".to_string(), vec!["agent-".to_string()]);
 
         let options = Some(ListContainersOptions {
             all: true,
@@ -119,14 +119,14 @@ impl Sorcerer {
         });
 
         let containers = self.docker.list_containers(options).await?;
-        let mut apprentices = self.apprentices.lock().await;
+        let mut agents = self.agents.lock().await;
         let mut next_port = self.next_port.lock().await;
 
         for container in containers {
             if let Some(names) = &container.names {
                 for name in names {
-                    if name.starts_with("/apprentice-") {
-                        let apprentice_name = name.strip_prefix("/apprentice-").unwrap();
+                    if name.starts_with("/agent-") {
+                        let agent_name = name.strip_prefix("/agent-").unwrap();
 
                         // Get port from container inspect (we'll need to inspect each container)
                         let port = if let Ok(container_info) = self
@@ -156,31 +156,28 @@ impl Sorcerer {
                             *next_port = port + 1;
                         }
 
-                        // Try to connect to the apprentice if it's running
+                        // Try to connect to the agent if it's running
                         let mut client = None;
                         if let Some(state) = &container.state {
                             if state == "running" {
                                 let addr = format!("http://127.0.0.1:{port}");
-                                if let Ok(c) = ApprenticeClient::connect(addr).await {
+                                if let Ok(c) = AgentClient::connect(addr).await {
                                     client = Some(c);
                                 }
                             }
                         }
 
-                        apprentices.insert(
-                            apprentice_name.to_string(),
-                            Apprentice {
-                                _name: apprentice_name.to_string(),
+                        agents.insert(
+                            agent_name.to_string(),
+                            Agent {
+                                _name: agent_name.to_string(),
                                 container_id: container.id.clone().unwrap_or_default(),
                                 _port: port,
                                 client,
                             },
                         );
 
-                        info!(
-                            "Discovered apprentice: {} (port: {})",
-                            apprentice_name, port
-                        );
+                        info!("Discovered agent: {} (port: {})", agent_name, port);
                     }
                 }
             }
@@ -189,27 +186,27 @@ impl Sorcerer {
         Ok(())
     }
 
-    pub async fn summon_apprentice(&self, name: &str) -> Result<()> {
-        // Validate apprentice name
-        if !Self::is_valid_apprentice_name(name) {
+    pub async fn create_agent(&self, name: &str) -> Result<()> {
+        // Validate agent name
+        if !Self::is_valid_agent_name(name) {
             return Err(anyhow!(
-                "Invalid apprentice name. Names must be 1-32 characters, alphanumeric with hyphens/underscores only"
+                "Invalid agent name. Names must be 1-32 characters, alphanumeric with hyphens/underscores only"
             ));
         }
 
-        let mut apprentices = self.apprentices.lock().await;
+        let mut agents = self.agents.lock().await;
 
-        // Check if apprentice already exists and is active (has a working client)
-        if let Some(existing_apprentice) = apprentices.get(name) {
-            if existing_apprentice.client.is_some() {
-                return Err(anyhow!("Apprentice {} already exists", name));
+        // Check if agent already exists and is active (has a working client)
+        if let Some(existing_agent) = agents.get(name) {
+            if existing_agent.client.is_some() {
+                return Err(anyhow!("Agent {} already exists", name));
             } else {
-                // Remove inactive apprentice entry and any existing container to allow recreation
-                apprentices.remove(name);
-                info!("Removed inactive apprentice {} to allow recreation", name);
+                // Remove inactive agent entry and any existing container to allow recreation
+                agents.remove(name);
+                info!("Removed inactive agent {} to allow recreation", name);
 
                 // Try to remove any existing container with this name
-                let container_name = format!("apprentice-{name}");
+                let container_name = format!("agent-{name}");
                 if let Err(e) = self.docker.remove_container(&container_name, None).await {
                     // Log but don't fail if container doesn't exist or can't be removed
                     info!(
@@ -227,18 +224,14 @@ impl Sorcerer {
             port
         };
 
-        info!("Summoning apprentice {} on port {}", name, port);
-
-        // Get API key from environment
-        let api_key = std::env::var("ANTHROPIC_API_KEY")?;
+        info!("Summoning agent {} on port {}", name, port);
 
         // Create container
         let config = Config {
             image: Some(self.config.image_name.clone()),
             env: Some(vec![
-                format!("APPRENTICE_NAME={}", name),
+                format!("AGENT_NAME={}", name),
                 format!("GRPC_PORT={}", port),
-                format!("ANTHROPIC_API_KEY={}", api_key),
             ]),
             exposed_ports: Some(HashMap::from([("50051/tcp".to_string(), HashMap::new())])),
             host_config: Some(bollard::models::HostConfig {
@@ -252,7 +245,7 @@ impl Sorcerer {
             .docker
             .create_container(
                 Some(CreateContainerOptions {
-                    name: format!("apprentice-{name}"),
+                    name: format!("agent-{name}"),
                     ..Default::default()
                 }),
                 config,
@@ -269,13 +262,13 @@ impl Sorcerer {
         ))
         .await;
 
-        // Connect to apprentice (using localhost since we're using host networking)
+        // Connect to agent (using localhost since we're using host networking)
         let addr = format!("http://127.0.0.1:{port}");
-        let client = ApprenticeClient::connect(addr.clone()).await?;
+        let client = AgentClient::connect(addr.clone()).await?;
 
-        apprentices.insert(
+        agents.insert(
             name.to_string(),
-            Apprentice {
+            Agent {
                 _name: name.to_string(),
                 container_id: container.id,
                 _port: port,
@@ -283,53 +276,27 @@ impl Sorcerer {
             },
         );
 
-        info!("Apprentice {} summoned successfully", name);
+        info!("Agent {} created successfully", name);
         Ok(())
     }
 
-    pub async fn cast_spell(&mut self, name: &str, incantation: &str) -> Result<String> {
-        let mut apprentices = self.apprentices.lock().await;
-        let apprentice = apprentices
-            .get_mut(name)
-            .ok_or_else(|| anyhow!("Apprentice {} not found", name))?;
-
-        let client = apprentice
-            .client
-            .as_mut()
-            .ok_or_else(|| anyhow!("Apprentice {} is not connected", name))?;
-
-        let request = tonic::Request::new(SpellRequest {
-            incantation: incantation.to_string(),
-            spell_id: uuid::Uuid::new_v4().to_string(),
-        });
-
-        let response = client.cast_spell(request).await?;
-        let spell_response = response.into_inner();
-
-        if spell_response.success {
-            Ok(spell_response.result)
-        } else {
-            Err(anyhow!("Tell failed: {}", spell_response.error))
-        }
-    }
-
-    pub async fn list_apprentices(&self) -> Result<Vec<String>> {
-        let apprentices = self.apprentices.lock().await;
-        Ok(apprentices
+    pub async fn list_agents(&self) -> Result<Vec<String>> {
+        let agents = self.agents.lock().await;
+        Ok(agents
             .iter()
-            .filter(|(_, apprentice)| apprentice.client.is_some())
+            .filter(|(_, agent)| agent.client.is_some())
             .map(|(name, _)| name.clone())
             .collect())
     }
 
-    pub async fn remove_apprentice(&self, name: &str) -> Result<()> {
-        let mut apprentices = self.apprentices.lock().await;
-        let apprentice = apprentices
+    pub async fn remove_agent(&self, name: &str) -> Result<()> {
+        let mut agents = self.agents.lock().await;
+        let agent = agents
             .remove(name)
-            .ok_or_else(|| anyhow!("Apprentice {} not found", name))?;
+            .ok_or_else(|| anyhow!("Agent {} not found", name))?;
 
         // Try to gracefully shut down via gRPC first
-        if let Some(mut client) = apprentice.client {
+        if let Some(mut client) = agent.client {
             let _ = client
                 .kill(tonic::Request::new(spells::KillRequest {
                     reason: "Sorcerer's command".to_string(),
@@ -338,17 +305,13 @@ impl Sorcerer {
         }
 
         // Stop and remove container
-        if let Err(e) = self
-            .docker
-            .stop_container(&apprentice.container_id, None)
-            .await
-        {
+        if let Err(e) = self.docker.stop_container(&agent.container_id, None).await {
             warn!("Failed to stop container gracefully: {}", e);
         }
 
         self.docker
             .remove_container(
-                &apprentice.container_id,
+                &agent.container_id,
                 Some(RemoveContainerOptions {
                     force: true,
                     ..Default::default()
@@ -356,16 +319,16 @@ impl Sorcerer {
             )
             .await?;
 
-        info!("Apprentice {} has been removed", name);
+        info!("Agent {} has been removed", name);
         Ok(())
     }
 
     pub async fn get_all_status(&mut self) -> Result<HashMap<String, spells::StatusResponse>> {
         let mut results = HashMap::new();
-        let mut apprentices = self.apprentices.lock().await;
+        let mut agents = self.agents.lock().await;
 
-        for (name, apprentice) in apprentices.iter_mut() {
-            if let Some(client) = &mut apprentice.client {
+        for (name, agent) in agents.iter_mut() {
+            if let Some(client) = &mut agent.client {
                 match client
                     .get_status(tonic::Request::new(StatusRequest {}))
                     .await
@@ -384,15 +347,15 @@ impl Sorcerer {
     }
 
     pub async fn get_chat_history(&mut self, name: &str, lines: usize) -> Result<Vec<String>> {
-        let mut apprentices = self.apprentices.lock().await;
-        let apprentice = apprentices
+        let mut agents = self.agents.lock().await;
+        let agent = agents
             .get_mut(name)
-            .ok_or_else(|| anyhow!("Apprentice {} not found", name))?;
+            .ok_or_else(|| anyhow!("Agent {} not found", name))?;
 
-        let client = apprentice
+        let client = agent
             .client
             .as_mut()
-            .ok_or_else(|| anyhow!("Apprentice {} is not connected", name))?;
+            .ok_or_else(|| anyhow!("Agent {} is not connected", name))?;
 
         let request = tonic::Request::new(ChatHistoryRequest {
             lines: lines as i32,

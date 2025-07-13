@@ -8,7 +8,7 @@ struct ApprenticeGuard {
 
 impl ApprenticeGuard {
     fn new(name: &str) -> Self {
-        // Clean up any existing apprentice with this name first
+        // Clean up any existing agent with this name first
         let _ = Command::new("./target/release/srcrr")
             .args(["rm", name])
             .output();
@@ -31,14 +31,14 @@ impl Drop for ApprenticeGuard {
     }
 }
 
-/// Clean up all common test apprentices
-/// This can be called manually to ensure no test apprentices are left running
+/// Clean up all common test agents
+/// This can be called manually to ensure no test agents are left running
 #[allow(dead_code)]
-fn cleanup_all_test_apprentices() {
+fn cleanup_all_test_agents() {
     let test_names = [
         "container-test",
         "duplicate-test",
-        "test-apprentice",
+        "test-agent",
         "test_formatting",
     ];
 
@@ -54,21 +54,16 @@ fn cleanup_all_test_apprentices() {
 
 #[test]
 #[serial]
-// Requires working container runtime and API key
-fn test_summon_and_communicate() {
-    // Check if we have the ANTHROPIC_API_KEY set
-    if std::env::var("ANTHROPIC_API_KEY").is_err() {
-        panic!("Test skipped: ANTHROPIC_API_KEY not set");
-    }
-
+// Requires working container runtime
+fn test_create_and_list() {
     // Use guard to ensure cleanup even if test panics
     let _guard = ApprenticeGuard::new("container-test");
 
-    // Test summoning
+    // Test createing
     let output = Command::new("./target/release/srcrr")
-        .args(["summon", "container-test"])
+        .args(["create", "container-test"])
         .output()
-        .expect("Failed to execute summon command");
+        .expect("Failed to execute create command");
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     let stderr = String::from_utf8_lossy(&output.stderr);
@@ -79,41 +74,22 @@ fn test_summon_and_communicate() {
     );
     assert!(
         stdout.contains("has answered your call"),
-        "Unexpected summon output: {stdout}"
+        "Unexpected create output: {stdout}"
     );
 
     // Wait for container to be ready
     std::thread::sleep(Duration::from_secs(3));
 
-    // Test communication
+    // Test list includes our agent
     let output = Command::new("./target/release/srcrr")
-        .args(["tell", "container-test", "What is 2+2?"])
+        .arg("list")
         .output()
-        .expect("Failed to execute tell command");
-
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let stderr = String::from_utf8_lossy(&output.stderr);
-
-    assert!(
-        output.status.success(),
-        "Tell failed. stdout: {stdout}, stderr: {stderr}"
-    );
-    assert!(
-        stdout.contains("The apprentice responds"),
-        "Unexpected tell output: {stdout}"
-    );
-    assert!(stdout.contains("4"), "Response should contain '4'");
-
-    // Test ls includes our apprentice
-    let output = Command::new("./target/release/srcrr")
-        .arg("ls")
-        .output()
-        .expect("Failed to execute ls command");
+        .expect("Failed to execute list command");
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
         stdout.contains("container-test"),
-        "Ls should show our apprentice"
+        "Ls should show our agent"
     );
 
     // Cleanup handled automatically by ApprenticeGuard
@@ -121,23 +97,23 @@ fn test_summon_and_communicate() {
 
 #[test]
 #[serial]
-fn test_summon_duplicate_fails() {
+fn test_create_duplicate_failist() {
     // This test doesn't require API key or containers
-    // First summon might fail if no runtime, but duplicate check should still work
+    // First create might fail if no runtime, but duplicate check should still work
 
     let name = "duplicate-test";
     let _guard = ApprenticeGuard::new(name);
 
-    // Try to summon twice
+    // Try to create twice
     let _ = Command::new("./target/release/srcrr")
-        .args(["summon", name])
+        .args(["create", name])
         .output();
 
-    // Second summon should fail with "already exists" if first succeeded
+    // Second create should fail with "already exists" if first succeeded
     let output = Command::new("./target/release/srcrr")
-        .args(["summon", name])
+        .args(["create", name])
         .output()
-        .expect("Failed to execute summon command");
+        .expect("Failed to execute create command");
 
     let stdout = String::from_utf8_lossy(&output.stdout);
 
@@ -145,7 +121,7 @@ fn test_summon_duplicate_fails() {
     // If not available, it will fail with a different error
     // This at least tests the CLI is working
     assert!(
-        stdout.contains("already exists") || stdout.contains("Failed to summon"),
+        stdout.contains("already exists") || stdout.contains("Failed to create"),
         "Unexpected output: {stdout}"
     );
 
@@ -153,15 +129,15 @@ fn test_summon_duplicate_fails() {
 }
 
 #[test]
-fn test_invalid_apprentice_name() {
+fn test_invalid_agent_name() {
     let output = Command::new("./target/release/srcrr")
-        .args(["summon", "invalid name with spaces"])
+        .args(["create", "invalid name with spaces"])
         .output()
-        .expect("Failed to execute summon command");
+        .expect("Failed to execute create command");
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
-        stdout.contains("Invalid apprentice name") || stdout.contains("Failed to summon"),
+        stdout.contains("Invalid agent name") || stdout.contains("Failed to create"),
         "Should reject invalid name"
     );
 }

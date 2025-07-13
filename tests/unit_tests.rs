@@ -54,8 +54,8 @@ mod tests {
     }
 
     #[test]
-    fn test_apprentice_name_validation() {
-        let valid_names = vec!["valid_name", "123", "test-apprentice", "a"];
+    fn test_agent_name_validation() {
+        let valid_names = vec!["valid_name", "123", "test-agent", "a"];
         let invalid_names = vec!["", "name with spaces", "name\nwith\nnewlines"];
 
         for name in valid_names {
@@ -201,19 +201,15 @@ mod tests {
 
     #[test]
     fn test_string_manipulation() {
-        let container_name = "/apprentice-test_name";
-        let apprentice_name = container_name.strip_prefix("/apprentice-").unwrap();
+        let container_name = "/agent-test_name";
+        let agent_name = container_name.strip_prefix("/agent-").unwrap();
 
-        assert_eq!(apprentice_name, "test_name");
+        assert_eq!(agent_name, "test_name");
     }
 
     #[test]
     fn test_environment_variable_parsing() {
-        let env_vars = vec![
-            "APPRENTICE_NAME=test_apprentice",
-            "GRPC_PORT=50051",
-            "ANTHROPIC_API_KEY=test_key",
-        ];
+        let env_vars = vec!["APPRENTICE_NAME=test_agent", "GRPC_PORT=50051"];
 
         for env_var in env_vars {
             assert!(env_var.contains('='));
@@ -235,11 +231,11 @@ mod tests {
 
     #[test]
     fn test_container_naming_format() {
-        let apprentice_name = "test_apprentice";
-        let container_name = format!("apprentice-{apprentice_name}");
+        let agent_name = "test_agent";
+        let container_name = format!("agent-{agent_name}");
 
-        assert_eq!(container_name, "apprentice-test_apprentice");
-        assert!(container_name.starts_with("apprentice-"));
+        assert_eq!(container_name, "agent-test_agent");
+        assert!(container_name.starts_with("agent-"));
     }
 
     #[test]
@@ -269,17 +265,17 @@ mod tests {
     }
 
     #[test]
-    fn test_apprentice_name_extraction() {
+    fn test_agent_name_extraction() {
         let test_cases = vec![
-            ("/apprentice-alice", "alice"),
-            ("/apprentice-bob_123", "bob_123"),
-            ("/apprentice-test-name", "test-name"),
-            ("/apprentice-a", "a"),
+            ("/agent-alice", "alice"),
+            ("/agent-bob_123", "bob_123"),
+            ("/agent-test-name", "test-name"),
+            ("/agent-a", "a"),
         ];
 
         for (container_name, expected_name) in test_cases {
-            let apprentice_name = container_name.strip_prefix("/apprentice-").unwrap();
-            assert_eq!(apprentice_name, expected_name);
+            let agent_name = container_name.strip_prefix("/agent-").unwrap();
+            assert_eq!(agent_name, expected_name);
         }
     }
 
@@ -320,18 +316,5 @@ mod tests {
                 assert!(!is_running);
             }
         }
-    }
-
-    #[test]
-    fn test_error_message_terminology() {
-        // Test that error messages use "Tell" instead of "Spell"
-        let error_msg = "Tell failed: API key not found";
-        assert!(error_msg.contains("Tell failed"));
-        assert!(!error_msg.contains("Spell failed"));
-
-        // Test that "tell" terminology is consistent
-        let command_name = "tell";
-        assert_eq!(command_name, "tell");
-        assert_ne!(command_name, "spell");
     }
 }

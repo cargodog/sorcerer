@@ -5,7 +5,6 @@
 1. **Prerequisites**
    - Rust 1.75+ 
    - Podman or Docker
-   - Anthropic API key for testing
 
 2. **Setup**
    ```bash
@@ -52,7 +51,7 @@ Test files are in `/tests/` directory covering:
 ```
 sorcerer/
 ├── src/           # Core sorcerer CLI
-├── apprentice/    # Agent container code
+├── agent/    # Agent container code
 ├── tests/         # Test suite
 ├── proto/         # gRPC protocol definitions
 └── hooks/         # Git hooks
@@ -63,11 +62,11 @@ sorcerer/
 1. Ensure all hooks pass: `git commit` (hooks run automatically)
 2. Verify tests pass: `cargo test`
 3. Build containers: `./build.sh`
-4. Test with real apprentices if applicable
+4. Test with real agents if applicable
 
 ## Container Development
 
 Apprentice container changes require rebuilding:
 ```bash
-podman build -f apprentice/Containerfile -t sorcerer-apprentice:latest .
+podman build -f agent/Containerfile -t sorcerer-agent:latest .
 ```

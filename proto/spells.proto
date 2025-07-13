@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package spells;
 
-service Apprentice {
+service Agent {
   rpc CastSpell(SpellRequest) returns (SpellResponse);
   rpc GetStatus(StatusRequest) returns (StatusResponse);
   rpc GetChatHistory(ChatHistoryRequest) returns (ChatHistoryResponse);
@@ -24,7 +24,7 @@ message SpellResponse {
 message StatusRequest {}
 
 message StatusResponse {
-  string apprentice_name = 1;
+  string agent_name = 1;
   string state = 2;       // "idle", "casting", "error"
   string last_spell_time = 3;
 }
