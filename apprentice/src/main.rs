@@ -1,4 +1,5 @@
 mod claude;
+mod commands;
 mod server;
 
 use anyhow::Result;

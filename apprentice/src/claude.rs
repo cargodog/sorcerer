@@ -8,6 +8,8 @@ struct ClaudeRequest {
     model: String,
     max_tokens: i32,
     messages: Vec<Message>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    system: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -60,6 +62,16 @@ impl ClaudeClient {
         message: &str,
         conversation_history: &[String],
     ) -> Result<String> {
+        self.send_message_with_system(message, conversation_history, None)
+            .await
+    }
+
+    pub async fn send_message_with_system(
+        &self,
+        message: &str,
+        conversation_history: &[String],
+        system_prompt: Option<&str>,
+    ) -> Result<String> {
         debug!("Sending message to Claude: {}", message);
 
         if self.api_key.is_empty() {
@@ -96,6 +108,7 @@ impl ClaudeClient {
             model: "claude-3-5-sonnet-20241022".to_string(),
             max_tokens: 1024,
             messages,
+            system: system_prompt.map(|s| s.to_string()),
         };
 
         let response = self

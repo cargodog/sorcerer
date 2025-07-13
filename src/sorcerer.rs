@@ -189,7 +189,7 @@ impl Sorcerer {
         Ok(())
     }
 
-    pub async fn summon_apprentice(&self, name: &str) -> Result<()> {
+    pub async fn summon_apprentice(&self, name: &str, agent_mode: bool) -> Result<()> {
         // Validate apprentice name
         if !Self::is_valid_apprentice_name(name) {
             return Err(anyhow!(
@@ -235,11 +235,17 @@ impl Sorcerer {
         // Create container
         let config = Config {
             image: Some(self.config.image_name.clone()),
-            env: Some(vec![
-                format!("APPRENTICE_NAME={}", name),
-                format!("GRPC_PORT={}", port),
-                format!("ANTHROPIC_API_KEY={}", api_key),
-            ]),
+            env: Some({
+                let mut env = vec![
+                    format!("APPRENTICE_NAME={}", name),
+                    format!("GRPC_PORT={}", port),
+                    format!("ANTHROPIC_API_KEY={}", api_key),
+                ];
+                if agent_mode {
+                    env.push("AGENT_MODE=true".to_string());
+                }
+                env
+            }),
             exposed_ports: Some(HashMap::from([("50051/tcp".to_string(), HashMap::new())])),
             host_config: Some(bollard::models::HostConfig {
                 network_mode: Some("host".to_string()),

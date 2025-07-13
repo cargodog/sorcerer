@@ -21,6 +21,9 @@ enum Commands {
     Summon {
         /// Names of the apprentices to create
         names: Vec<String>,
+        /// Disable system prompt (spawn apprentice without autonomous capabilities)
+        #[arg(long)]
+        no_system_prompt: bool,
     },
     /// Send a message to an apprentice and get its response
     Tell {
@@ -68,7 +71,10 @@ async fn main() -> Result<()> {
     let mut sorcerer = sorcerer::Sorcerer::new().await?;
 
     match cli.command {
-        Commands::Summon { names } => {
+        Commands::Summon {
+            names,
+            no_system_prompt,
+        } => {
             if names.is_empty() {
                 println!("❌ No apprentice names provided");
                 return Ok(());
@@ -88,7 +94,8 @@ async fn main() -> Result<()> {
                     let name_clone = name.clone();
                     let sorcerer = &sorcerer;
                     async move {
-                        let result = sorcerer.summon_apprentice(&name).await;
+                        let agent_mode = !no_system_prompt; // Agent mode is default, --no-system-prompt disables it
+                        let result = sorcerer.summon_apprentice(&name, agent_mode).await;
                         (name_clone, result)
                     }
                 })

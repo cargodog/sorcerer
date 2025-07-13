@@ -98,10 +98,42 @@ export ANTHROPIC_API_KEY="your-key-here"
 ./target/release/srcrr rm -a
 ```
 
+## 🤖 Autonomous Apprentices
+
+By default, apprentices can perform autonomous tasks! They can execute commands, manipulate files, and complete complex workflows independently.
+
+```bash
+# Summon an autonomous apprentice (default behavior)
+./target/release/srcrr summon CodeWizard
+
+# Give it a complex task
+./target/release/srcrr tell CodeWizard "Find all TODO comments in the codebase and create a summary report"
+
+# The apprentice will autonomously:
+# - Search through files
+# - Analyze findings  
+# - Create a report
+# - Present results
+```
+
+Apprentices can:
+- 📄 Read, write, and edit files
+- 🔍 Search codebases with ripgrep
+- 💻 Execute shell commands
+- 🌐 Fetch web content
+- 📊 Parse structured data
+- 🧠 Plan and track multi-step tasks
+
+For simple chat without autonomous capabilities, use `--no-system-prompt`.
+
+See [docs/agent-mode.md](docs/agent-mode.md) for detailed documentation.
+
 ## 🔮 Commands of Power
 
-### `srcrr summon <name>...`
-Brings forth one or more apprentices from the mystical realm. Each apprentice is bound to serve until removed. You can summon multiple apprentices by providing multiple names.
+### `srcrr summon <name>... [--no-system-prompt]`
+Brings forth one or more autonomous apprentices from the mystical realm. Each apprentice is bound to serve until removed. You can summon multiple apprentices by providing multiple names.
+
+Use `--no-system-prompt` to summon non-autonomous apprentices for simple chat only.
 
 ### `srcrr tell <name> "<message>"`
 Sends a message to an apprentice (sends a prompt to Claude). The apprentice will channel the wisdom of the ancients to fulfill your request.

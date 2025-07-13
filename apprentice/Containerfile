@@ -29,6 +29,7 @@ RUN rm -rf src apprentice/src target/release/apprentice
 
 # Copy actual source code
 COPY apprentice/src /app/apprentice/src
+COPY apprentice/prompts /app/apprentice/prompts
 
 # Build the apprentice with the real source code
 RUN touch apprentice/src/main.rs && cargo build --release -p apprentice
@@ -36,7 +37,13 @@ RUN touch apprentice/src/main.rs && cargo build --release -p apprentice
 # Runtime stage
 FROM debian:bookworm-slim
 
-RUN apt-get update && apt-get install -y ca-certificates libssl3 && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    libssl3 \
+    ripgrep \
+    curl \
+    jq \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /app/target/release/apprentice /usr/local/bin/apprentice
 
