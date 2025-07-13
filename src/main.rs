@@ -75,11 +75,31 @@ async fn main() -> Result<()> {
             }
 
             let total = names.len();
+
+            // Print initial messages
+            for name in &names {
+                println!("🌟 Summoning apprentice {name}...");
+            }
+
+            // Execute summons concurrently
+            let tasks: Vec<_> = names
+                .into_iter()
+                .map(|name| {
+                    let name_clone = name.clone();
+                    let sorcerer = &sorcerer;
+                    async move {
+                        let result = sorcerer.summon_apprentice(&name).await;
+                        (name_clone, result)
+                    }
+                })
+                .collect();
+
+            let results = futures::future::join_all(tasks).await;
             let mut successes = 0;
 
-            for name in names {
-                println!("🌟 Summoning apprentice {name}...");
-                match sorcerer.summon_apprentice(&name).await {
+            // Process results
+            for (name, result) in results {
+                match result {
                     Ok(_) => {
                         println!("✨ Apprentice {name} has answered your call!");
                         successes += 1;
@@ -140,9 +160,29 @@ async fn main() -> Result<()> {
             let total = apprentices_to_remove.len();
             let mut successes = 0;
 
-            for name in apprentices_to_remove {
+            // Print initial messages
+            for name in &apprentices_to_remove {
                 println!("💀 Removing apprentice {name}...");
-                match sorcerer.remove_apprentice(&name).await {
+            }
+
+            // Execute removals concurrently
+            let tasks: Vec<_> = apprentices_to_remove
+                .into_iter()
+                .map(|name| {
+                    let name_clone = name.clone();
+                    let sorcerer = &sorcerer;
+                    async move {
+                        let result = sorcerer.remove_apprentice(&name).await;
+                        (name_clone, result)
+                    }
+                })
+                .collect();
+
+            let results = futures::future::join_all(tasks).await;
+
+            // Process results
+            for (name, result) in results {
+                match result {
                     Ok(_) => {
                         println!("⚰️  Apprentice {name} has been removed!");
                         successes += 1;

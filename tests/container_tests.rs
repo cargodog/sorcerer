@@ -54,12 +54,11 @@ fn cleanup_all_test_apprentices() {
 
 #[test]
 #[serial]
-#[ignore] // Requires working container runtime and API key
+// Requires working container runtime and API key
 fn test_summon_and_communicate() {
     // Check if we have the ANTHROPIC_API_KEY set
     if std::env::var("ANTHROPIC_API_KEY").is_err() {
-        eprintln!("Skipping container test: ANTHROPIC_API_KEY not set");
-        return;
+        panic!("Test skipped: ANTHROPIC_API_KEY not set");
     }
 
     // Use guard to ensure cleanup even if test panics

@@ -146,7 +146,7 @@ fn test_rm_nonexistent_apprentice() {
 
 #[test]
 #[serial]
-#[ignore] // Requires working container runtime
+// Requires working container runtime
 fn test_summon_and_tell_flow() {
     let _guard = ApprenticeGuard::new("test-flow");
 
@@ -467,7 +467,7 @@ fn test_rm_single_apprentice() {
 
 #[test]
 #[serial]
-#[ignore] // Requires working container runtime
+// Requires working container runtime
 fn test_summon_and_rm_multiple_flow() {
     // Clean up first
     let _ = StdCommand::new("./target/release/srcrr")
