@@ -34,7 +34,7 @@ fn test_reference_memory() {
     // Cleanup
     Command::cargo_bin("srcrr")
         .unwrap()
-        .args(["kill", "memory_test_1"])
+        .args(["rm", "memory_test_1"])
         .assert()
         .success();
 }
@@ -72,7 +72,7 @@ fn test_pronoun_resolution() {
     // Cleanup
     Command::cargo_bin("srcrr")
         .unwrap()
-        .args(["kill", "pronoun_test"])
+        .args(["rm", "pronoun_test"])
         .assert()
         .success();
 }
@@ -110,7 +110,7 @@ fn test_continuation() {
     // Cleanup
     Command::cargo_bin("srcrr")
         .unwrap()
-        .args(["kill", "continuation_test"])
+        .args(["rm", "continuation_test"])
         .assert()
         .success();
 }
@@ -159,7 +159,7 @@ fn test_correction_memory() {
     // Cleanup
     Command::cargo_bin("srcrr")
         .unwrap()
-        .args(["kill", "correction_test"])
+        .args(["rm", "correction_test"])
         .assert()
         .success();
 }
@@ -204,7 +204,7 @@ fn test_multi_turn_reasoning() {
     // Cleanup
     Command::cargo_bin("srcrr")
         .unwrap()
-        .args(["kill", "reasoning_test"])
+        .args(["rm", "reasoning_test"])
         .assert()
         .success();
 }
@@ -263,7 +263,7 @@ fn test_context_switching() {
     // Cleanup
     Command::cargo_bin("srcrr")
         .unwrap()
-        .args(["kill", "context_switch_test"])
+        .args(["rm", "context_switch_test"])
         .assert()
         .success();
 }
@@ -289,7 +289,7 @@ fn test_no_context_control() {
     // Kill first apprentice
     Command::cargo_bin("srcrr")
         .unwrap()
-        .args(["kill", "control_test_1"])
+        .args(["rm", "control_test_1"])
         .assert()
         .success();
 
@@ -317,7 +317,7 @@ fn test_no_context_control() {
     // Cleanup
     Command::cargo_bin("srcrr")
         .unwrap()
-        .args(["kill", "control_test_1"])
+        .args(["rm", "control_test_1"])
         .assert()
         .success();
 }
@@ -371,7 +371,7 @@ fn test_complex_conversation_flow() {
     // Cleanup
     Command::cargo_bin("srcrr")
         .unwrap()
-        .args(["kill", "complex_test"])
+        .args(["rm", "complex_test"])
         .assert()
         .success();
 }

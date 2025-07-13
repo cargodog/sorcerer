@@ -186,7 +186,7 @@ mod sorcerer_tests {
 
     #[test]
     fn test_apprentice_removal_logic() {
-        // Test the apprentice removal logic used in kill_apprentice
+        // Test the apprentice removal logic used in remove_apprentice
         let mut apprentices = HashMap::new();
         let apprentice_name = "test_apprentice";
 

@@ -17,10 +17,10 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Create and start a new apprentice container
+    /// Create and start new apprentice containers
     Summon {
-        /// Name of the apprentice to create
-        name: String,
+        /// Names of the apprentices to create
+        names: Vec<String>,
     },
     /// Send a message to an apprentice and get its response
     Tell {
@@ -30,20 +30,23 @@ enum Commands {
         message: String,
     },
     /// List all active apprentices
-    List,
-    /// Stop and remove an apprentice container
-    Kill {
-        /// Name of the apprentice to remove
-        name: String,
+    Ls,
+    /// Stop and remove apprentice containers
+    Rm {
+        /// Names of the apprentices to remove
+        names: Vec<String>,
+        /// Remove all apprentices
+        #[arg(short, long)]
+        all: bool,
     },
     /// Show detailed status information for all apprentices
-    Overview {
+    Ps {
         /// Number of recent chat history lines to show
         #[arg(short, long, default_value = "4")]
         lines: usize,
     },
     /// View and scroll through chat history with an apprentice
-    History {
+    Show {
         /// Name of the apprentice to view history for
         name: String,
         /// Number of history lines to show (default: all)
@@ -65,16 +68,31 @@ async fn main() -> Result<()> {
     let mut sorcerer = sorcerer::Sorcerer::new().await?;
 
     match cli.command {
-        Commands::Summon { name } => {
-            println!("🌟 Summoning apprentice {name}...");
-            match sorcerer.summon_apprentice(&name).await {
-                Ok(_) => {
-                    println!("✨ Apprentice {name} has answered your call!");
+        Commands::Summon { names } => {
+            if names.is_empty() {
+                println!("❌ No apprentice names provided");
+                return Ok(());
+            }
+
+            let total = names.len();
+            let mut successes = 0;
+
+            for name in names {
+                println!("🌟 Summoning apprentice {name}...");
+                match sorcerer.summon_apprentice(&name).await {
+                    Ok(_) => {
+                        println!("✨ Apprentice {name} has answered your call!");
+                        successes += 1;
+                    }
+                    Err(e) => {
+                        error!("Failed to summon apprentice {}: {}", name, e);
+                        println!("💀 Failed to summon {name}");
+                    }
                 }
-                Err(e) => {
-                    error!("Failed to summon apprentice: {}", e);
-                    println!("💀 The summoning failed");
-                }
+            }
+
+            if total > 1 {
+                println!("\n📊 Summary: {successes}/{total} apprentices summoned successfully");
             }
         }
         Commands::Tell { name, message } => {
@@ -90,7 +108,7 @@ async fn main() -> Result<()> {
                 }
             }
         }
-        Commands::List => {
+        Commands::Ls => {
             println!("📋 Listing apprentices...");
             println!();
             let apprentices = sorcerer.list_apprentices().await?;
@@ -102,19 +120,45 @@ async fn main() -> Result<()> {
                 }
             }
         }
-        Commands::Kill { name } => {
-            println!("💀 Killing apprentice {name}...");
-            match sorcerer.kill_apprentice(&name).await {
-                Ok(_) => {
-                    println!("⚰️  Apprentice {name} has been killed!");
+        Commands::Rm { names, all } => {
+            let apprentices_to_remove = if all {
+                let all_apprentices = sorcerer.list_apprentices().await?;
+                if all_apprentices.is_empty() {
+                    println!("📭 No apprentices to remove");
+                    return Ok(());
                 }
-                Err(e) => {
-                    error!("Failed to kill apprentice: {}", e);
-                    println!("⚠️  Kill failed");
+                println!("🗑️  Removing all {} apprentices...", all_apprentices.len());
+                all_apprentices
+            } else {
+                if names.is_empty() {
+                    println!("❌ No apprentice names provided (use -a for all)");
+                    return Ok(());
+                }
+                names
+            };
+
+            let total = apprentices_to_remove.len();
+            let mut successes = 0;
+
+            for name in apprentices_to_remove {
+                println!("💀 Removing apprentice {name}...");
+                match sorcerer.remove_apprentice(&name).await {
+                    Ok(_) => {
+                        println!("⚰️  Apprentice {name} has been removed!");
+                        successes += 1;
+                    }
+                    Err(e) => {
+                        error!("Failed to remove apprentice {}: {}", name, e);
+                        println!("⚠️  Failed to remove {name}");
+                    }
                 }
             }
+
+            if total > 1 {
+                println!("\n📊 Summary: {successes}/{total} apprentices removed successfully");
+            }
         }
-        Commands::Overview { lines } => {
+        Commands::Ps { lines } => {
             println!("📊 Overview of apprentices...");
             let statuses = sorcerer.get_all_status().await?;
             if statuses.is_empty() {
@@ -170,7 +214,7 @@ async fn main() -> Result<()> {
                 }
             }
         }
-        Commands::History { name, lines } => {
+        Commands::Show { name, lines } => {
             println!("📜 Viewing chat history for apprentice {name}...");
 
             // Get all history or specified number of lines

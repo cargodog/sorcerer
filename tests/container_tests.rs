@@ -44,7 +44,7 @@ fn cleanup_all_test_apprentices() {
 
     for name in &test_names {
         let _ = Command::new("./target/release/srcrr")
-            .args(["kill", name])
+            .args(["rm", name])
             .output();
     }
 
@@ -54,6 +54,7 @@ fn cleanup_all_test_apprentices() {
 
 #[test]
 #[serial]
+#[ignore] // Requires working container runtime and API key
 fn test_summon_and_communicate() {
     // Check if we have the ANTHROPIC_API_KEY set
     if std::env::var("ANTHROPIC_API_KEY").is_err() {
@@ -104,16 +105,16 @@ fn test_summon_and_communicate() {
     );
     assert!(stdout.contains("4"), "Response should contain '4'");
 
-    // Test list includes our apprentice
+    // Test ls includes our apprentice
     let output = Command::new("./target/release/srcrr")
-        .arg("list")
+        .arg("ls")
         .output()
-        .expect("Failed to execute list command");
+        .expect("Failed to execute ls command");
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
         stdout.contains("container-test"),
-        "List should show our apprentice"
+        "Ls should show our apprentice"
     );
 
     // Cleanup handled automatically by ApprenticeGuard
@@ -145,7 +146,7 @@ fn test_summon_duplicate_fails() {
     // If not available, it will fail with a different error
     // This at least tests the CLI is working
     assert!(
-        stdout.contains("already exists") || stdout.contains("summoning failed"),
+        stdout.contains("already exists") || stdout.contains("Failed to summon"),
         "Unexpected output: {stdout}"
     );
 
@@ -161,7 +162,7 @@ fn test_invalid_apprentice_name() {
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
-        stdout.contains("Invalid apprentice name") || stdout.contains("summoning failed"),
+        stdout.contains("Invalid apprentice name") || stdout.contains("Failed to summon"),
         "Should reject invalid name"
     );
 }

@@ -322,7 +322,7 @@ impl Sorcerer {
             .collect())
     }
 
-    pub async fn kill_apprentice(&mut self, name: &str) -> Result<()> {
+    pub async fn remove_apprentice(&mut self, name: &str) -> Result<()> {
         let mut apprentices = self.apprentices.lock().await;
         let apprentice = apprentices
             .remove(name)
@@ -356,7 +356,7 @@ impl Sorcerer {
             )
             .await?;
 
-        info!("Apprentice {} has been killed", name);
+        info!("Apprentice {} has been removed", name);
         Ok(())
     }
 
