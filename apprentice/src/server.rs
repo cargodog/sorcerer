@@ -62,7 +62,17 @@ impl Apprentice for ApprenticeServer {
             state.state = "casting".to_string();
         }
 
-        let result = match self.claude_client.send_message(&spell.incantation).await {
+        // Get the current conversation history before sending the message
+        let conversation_history = {
+            let state = self.state.lock().await;
+            state.chat_history.clone()
+        };
+
+        let result = match self
+            .claude_client
+            .send_message(&spell.incantation, &conversation_history)
+            .await
+        {
             Ok(response) => {
                 let mut state = self.state.lock().await;
                 state.state = "idle".to_string();

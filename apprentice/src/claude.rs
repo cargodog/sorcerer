@@ -55,20 +55,47 @@ impl ClaudeClient {
         }
     }
 
-    pub async fn send_message(&self, message: &str) -> Result<String> {
+    pub async fn send_message(
+        &self,
+        message: &str,
+        conversation_history: &[String],
+    ) -> Result<String> {
         debug!("Sending message to Claude: {}", message);
 
         if self.api_key.is_empty() {
             return Err(anyhow!("ANTHROPIC_API_KEY not set"));
         }
 
+        // Build messages array from conversation history
+        let mut messages = Vec::new();
+
+        // Add conversation history
+        for hist_msg in conversation_history.iter() {
+            if let Some(content) = hist_msg.strip_prefix("Sorcerer: ") {
+                messages.push(Message {
+                    role: "user".to_string(),
+                    content: content.to_string(),
+                });
+            } else if let Some(colon_pos) = hist_msg.find(": ") {
+                // This is an assistant message (format: "ApprenticeNname: response")
+                let content = &hist_msg[colon_pos + 2..];
+                messages.push(Message {
+                    role: "assistant".to_string(),
+                    content: content.to_string(),
+                });
+            }
+        }
+
+        // Add the current message
+        messages.push(Message {
+            role: "user".to_string(),
+            content: message.to_string(),
+        });
+
         let request = ClaudeRequest {
             model: "claude-3-5-sonnet-20241022".to_string(),
             max_tokens: 1024,
-            messages: vec![Message {
-                role: "user".to_string(),
-                content: message.to_string(),
-            }],
+            messages,
         };
 
         let response = self
