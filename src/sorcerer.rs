@@ -189,7 +189,7 @@ impl Sorcerer {
         Ok(())
     }
 
-    pub async fn summon_apprentice(&mut self, name: &str) -> Result<()> {
+    pub async fn summon_apprentice(&self, name: &str) -> Result<()> {
         // Validate apprentice name
         if !Self::is_valid_apprentice_name(name) {
             return Err(anyhow!(
@@ -322,7 +322,7 @@ impl Sorcerer {
             .collect())
     }
 
-    pub async fn remove_apprentice(&mut self, name: &str) -> Result<()> {
+    pub async fn remove_apprentice(&self, name: &str) -> Result<()> {
         let mut apprentices = self.apprentices.lock().await;
         let apprentice = apprentices
             .remove(name)

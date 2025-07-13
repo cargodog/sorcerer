@@ -22,12 +22,15 @@ enum Commands {
         /// Names of the apprentices to create
         names: Vec<String>,
     },
-    /// Send a message to an apprentice and get its response
+    /// Send a message to apprentices and get their responses
     Tell {
-        /// Name of the apprentice to communicate with
-        name: String,
         /// The message to send
         message: String,
+        /// Names of the apprentices to communicate with
+        names: Vec<String>,
+        /// Send message to all apprentices
+        #[arg(short, long)]
+        all: bool,
     },
     /// List all active apprentices
     Ls,
@@ -75,11 +78,31 @@ async fn main() -> Result<()> {
             }
 
             let total = names.len();
+
+            // Print initial messages
+            for name in &names {
+                println!("🌟 Summoning apprentice {name}...");
+            }
+
+            // Execute summons concurrently
+            let tasks: Vec<_> = names
+                .into_iter()
+                .map(|name| {
+                    let name_clone = name.clone();
+                    let sorcerer = &sorcerer;
+                    async move {
+                        let result = sorcerer.summon_apprentice(&name).await;
+                        (name_clone, result)
+                    }
+                })
+                .collect();
+
+            let results = futures::future::join_all(tasks).await;
             let mut successes = 0;
 
-            for name in names {
-                println!("🌟 Summoning apprentice {name}...");
-                match sorcerer.summon_apprentice(&name).await {
+            // Process results
+            for (name, result) in results {
+                match result {
                     Ok(_) => {
                         println!("✨ Apprentice {name} has answered your call!");
                         successes += 1;
@@ -95,17 +118,69 @@ async fn main() -> Result<()> {
                 println!("\n📊 Summary: {successes}/{total} apprentices summoned successfully");
             }
         }
-        Commands::Tell { name, message } => {
-            println!("📜 Sending message to apprentice {name}...");
-            match sorcerer.cast_spell(&name, &message).await {
-                Ok(response) => {
-                    println!("🔮 The apprentice responds:");
-                    println!("{response}");
+        Commands::Tell {
+            message,
+            names,
+            all,
+        } => {
+            let apprentices_to_tell = if all {
+                let all_apprentices = sorcerer.list_apprentices().await?;
+                if all_apprentices.is_empty() {
+                    println!("📭 No apprentices to send message to");
+                    return Ok(());
                 }
-                Err(e) => {
-                    error!("Message sending failed: {}", e);
-                    println!("💥 The message failed");
+                println!(
+                    "📢 Sending message to all {} apprentices...",
+                    all_apprentices.len()
+                );
+                all_apprentices
+            } else {
+                if names.is_empty() {
+                    println!("❌ No apprentice names provided (use -a for all)");
+                    return Ok(());
                 }
+                names
+            };
+
+            let total = apprentices_to_tell.len();
+
+            // For single apprentice, use the original simple output format
+            if total == 1 {
+                let name = &apprentices_to_tell[0];
+                println!("📜 Sending message to apprentice {name}...");
+                match sorcerer.cast_spell(name, &message).await {
+                    Ok(response) => {
+                        println!("🔮 The apprentice responds:");
+                        println!("{response}");
+                    }
+                    Err(e) => {
+                        error!("Message sending failed: {}", e);
+                        println!("💥 The message failed");
+                    }
+                }
+            } else {
+                // Execute tells sequentially (cast_spell requires &mut self)
+                let mut successes = 0;
+
+                for name in apprentices_to_tell {
+                    println!("📜 Sending message to apprentice {name}...");
+                    match sorcerer.cast_spell(&name, &message).await {
+                        Ok(response) => {
+                            println!("🔮 Apprentice {name} responds:");
+                            println!("{response}");
+                            successes += 1;
+                        }
+                        Err(e) => {
+                            error!("Failed to send message to apprentice {}: {}", name, e);
+                            println!("💥 Failed to send message to {name}");
+                        }
+                    }
+                    if successes < total {
+                        println!(); // Add spacing between multiple responses
+                    }
+                }
+
+                println!("\n📊 Summary: {successes}/{total} apprentices responded successfully");
             }
         }
         Commands::Ls => {
@@ -140,9 +215,29 @@ async fn main() -> Result<()> {
             let total = apprentices_to_remove.len();
             let mut successes = 0;
 
-            for name in apprentices_to_remove {
+            // Print initial messages
+            for name in &apprentices_to_remove {
                 println!("💀 Removing apprentice {name}...");
-                match sorcerer.remove_apprentice(&name).await {
+            }
+
+            // Execute removals concurrently
+            let tasks: Vec<_> = apprentices_to_remove
+                .into_iter()
+                .map(|name| {
+                    let name_clone = name.clone();
+                    let sorcerer = &sorcerer;
+                    async move {
+                        let result = sorcerer.remove_apprentice(&name).await;
+                        (name_clone, result)
+                    }
+                })
+                .collect();
+
+            let results = futures::future::join_all(tasks).await;
+
+            // Process results
+            for (name, result) in results {
+                match result {
                     Ok(_) => {
                         println!("⚰️  Apprentice {name} has been removed!");
                         successes += 1;
