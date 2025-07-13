@@ -2,26 +2,55 @@
 set -e
 
 commit_msg_file="$1"
-commit_msg=$(grep -v "^#" "$commit_msg_file" | sed '/^$/d' | sed '/^# -\+\s*>8\s*-\+/,$d')
 
-echo "Validating commit message..."
+# Check for non-interactive bypass option
+if [ "$COMMIT_MSG_NO_EDIT" = "1" ]; then
+    echo "Bypassing commit message validation (COMMIT_MSG_NO_EDIT=1)"
+    exit 0
+fi
 
-# Check if empty
-[ -z "$(echo "$commit_msg" | tr -d '[:space:]')" ] && { echo "Error: Empty commit message"; exit 1; }
-
-first_line=$(echo "$commit_msg" | head -n1)
-
-# Length checks
-len=${#first_line}
-[ $len -lt 10 ] && { echo "Error: Message too short (min 10 chars)"; exit 1; }
-[ $len -gt 72 ] && { echo "Error: First line too long (max 72 chars)"; exit 1; }
-
-# Allow merge commits
-[[ "$first_line" =~ ^Merge ]] && { echo "Merge commit accepted"; exit 0; }
-
-# Require conventional commit format
-if [[ ! "$first_line" =~ ^(feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert)(\(.+\))?: ]]; then
-    cat << EOF
+validate_commit_message() {
+    local msg_file="$1"
+    local commit_msg=$(awk '/^# ------------------------ >8 ------------------------/{exit} /^diff --git/{exit} /^index [0-9a-f]/{exit} /^@@.*@@/{exit} !/^#/{print}' "$msg_file" | sed '/^$/d')
+    
+    # Check if empty
+    if [ -z "$(echo "$commit_msg" | tr -d '[:space:]')" ]; then
+        echo "Error: Empty commit message"
+        return 1
+    fi
+    
+    local first_line=$(echo "$commit_msg" | head -n1)
+    
+    # Length checks
+    local len=${#first_line}
+    if [ $len -lt 10 ]; then
+        echo "Error: Message too short (min 10 chars)"
+        return 1
+    fi
+    if [ $len -gt 50 ]; then
+        echo "Error: Subject line too long (line 1: $len chars, max 50 chars)"
+        return 1
+    fi
+    
+    # Check body lines for maximum length (80 chars), skip first line
+    local line_num=1
+    while IFS= read -r line; do
+        if [ $line_num -gt 1 ] && [ ${#line} -gt 80 ]; then
+            echo "Error: Body line too long (line $line_num: ${#line} chars, max 80 chars): '$line'"
+            return 1
+        fi
+        line_num=$((line_num + 1))
+    done <<< "$commit_msg"
+    
+    # Allow merge commits
+    if [[ "$first_line" =~ ^Merge ]]; then
+        echo "Merge commit accepted"
+        return 0
+    fi
+    
+    # Require conventional commit format
+    if [[ ! "$first_line" =~ ^(feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert)(\(.+\))?: ]]; then
+        cat << EOF
 Error: Use conventional commit format: <type>(<scope>): <description>
 
 Types: feat, fix, docs, style, refactor, test, chore, perf, ci, build, revert
@@ -33,13 +62,74 @@ Examples:
 
 Your message: '$first_line'
 EOF
+        return 1
+    fi
+    
+    # Check for WIP-like patterns
+    if echo "$commit_msg" | grep -qiE "\b(wip|fixup|squash|todo|hack|temp)\b"; then
+        echo "Error: Commit contains prohibited words (wip, fixup, squash, todo, hack, temp)"
+        return 1
+    fi
+    
+    return 0
+}
+
+echo "Validating commit message..."
+
+# Try validation first
+if validate_commit_message "$commit_msg_file"; then
+    echo "Commit message valid!"
+    exit 0
+fi
+
+# If validation failed, check if we should try interactive editing
+# Default to interactive unless explicitly disabled or clearly non-interactive
+if [ "${GIT_EDITOR:-}" = ":" ] || [ "${COMMIT_MSG_FORCE_NON_INTERACTIVE:-}" = "1" ]; then
+    # Explicitly non-interactive (GIT_EDITOR=: is git's way to disable editor)
+    echo "Non-interactive mode: commit aborted."
+    echo "Tip: Set COMMIT_MSG_NO_EDIT=1 to bypass validation in scripts."
     exit 1
 fi
 
-# Check for WIP-like patterns
-if echo "$commit_msg" | grep -qiE "\b(wip|fixup|squash|todo|hack|temp)\b"; then
-    echo "Error: Commit contains prohibited words (wip, fixup, squash, todo, hack, temp)"
+# Check if we can interact with user
+if [ ! -c /dev/tty ]; then
+    echo "No terminal available for editing. Commit aborted."
+    echo "Tip: Set COMMIT_MSG_NO_EDIT=1 to bypass validation in scripts."
     exit 1
 fi
 
-echo "Commit message valid!"
+# Interactive editing loop
+while true; do
+    echo
+    echo "Would you like to edit the commit message? [y/N]" > /dev/tty
+    # Use /dev/tty to read directly from terminal even if stdin is redirected
+    if read -r response < /dev/tty; then
+        case "$response" in
+            [yY]|[yY][eE][sS])
+                # Find the editor to use
+                editor="${GIT_EDITOR:-${EDITOR:-${VISUAL:-vi}}}"
+                if [ "$editor" = ":" ]; then
+                    echo "No editor available (GIT_EDITOR is set to ':')" > /dev/tty
+                    exit 1
+                fi
+                "$editor" "$commit_msg_file" < /dev/tty > /dev/tty 2>&1
+                echo
+                echo "Re-validating edited commit message..."
+                if validate_commit_message "$commit_msg_file"; then
+                    echo "Commit message valid!"
+                    exit 0
+                else
+                    echo "Commit message still invalid. Try again?"
+                    # Continue the loop to ask again
+                fi
+                ;;
+            *)
+                echo "Commit aborted."
+                exit 1
+                ;;
+        esac
+    else
+        echo "Could not read user input. Commit aborted."
+        exit 1
+    fi
+done
