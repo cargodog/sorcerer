@@ -138,3 +138,94 @@ Apprentice. While our agents won't flood your workshop with water, they
 will faithfully execute your commands through the magic of AI.
 
 Use this power wisely, young sorcerer!
+
+## 📖 Command Reference
+
+### Main Command
+
+```
+🧙‍♂️ The Sorcerer - Command agents to do your bidding
+
+Usage: srcrr <COMMAND>
+
+Commands:
+  create  Create and start new agent containers
+  list    List all active agents
+  rm      Stop and remove agent containers
+  ps      Show detailed status information for all agents
+  help    Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help     Print help
+  -V, --version  Print version
+```
+
+### `srcrr create`
+
+```
+Create and start new agent containers
+
+Usage: srcrr create [NAMES]...
+
+Arguments:
+  [NAMES]...  Names of the agents to create
+
+Options:
+  -h, --help  Print help
+```
+
+**Examples:**
+- `srcrr create Alice` - Create a single agent named Alice
+- `srcrr create Alice Bob Carol` - Create multiple agents at once
+
+### `srcrr list`
+
+```
+List all active agents
+
+Usage: srcrr list
+
+Options:
+  -h, --help  Print help
+```
+
+**Examples:**
+- `srcrr list` - Show all active agents
+
+### `srcrr rm`
+
+```
+Stop and remove agent containers
+
+Usage: srcrr rm [OPTIONS] [NAMES]...
+
+Arguments:
+  [NAMES]...  Names of the agents to remove
+
+Options:
+  -a, --all   Remove all agents
+  -h, --help  Print help
+```
+
+**Examples:**
+- `srcrr rm Alice` - Remove agent named Alice
+- `srcrr rm Alice Bob` - Remove multiple agents
+- `srcrr rm -a` - Remove all agents
+- `srcrr rm --all` - Remove all agents (alternative syntax)
+
+### `srcrr ps`
+
+```
+Show detailed status information for all agents
+
+Usage: srcrr ps [OPTIONS]
+
+Options:
+  -l, --lines <LINES>  Number of recent chat history lines to show [default: 4]
+  -h, --help           Print help
+```
+
+**Examples:**
+- `srcrr ps` - Show status with default 4 lines of chat history
+- `srcrr ps -l 10` - Show status with 10 lines of chat history
+- `srcrr ps --lines 0` - Show status without chat history
